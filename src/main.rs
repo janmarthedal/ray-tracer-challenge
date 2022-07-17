@@ -1,4 +1,6 @@
 mod approx_eq;
+mod canvas;
+mod color;
 mod tuple;
 use tuple::Tuple;
 
