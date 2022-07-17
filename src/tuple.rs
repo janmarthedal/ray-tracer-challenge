@@ -1,5 +1,5 @@
 use std::ops::{Add, Div, Mul, Neg, Sub};
-use crate::approx_eq::{ApproxEq, assert_approx_eq};
+use crate::approx_eq::ApproxEq;
 
 #[derive(Debug, Copy, Clone)]
 pub struct Tuple {
@@ -148,6 +148,7 @@ impl Div<f64> for &Tuple {
 mod tests {
 
     use super::*;
+    use crate::approx_eq::assert_approx_eq;
 
     #[test]
     fn test_new_point() {

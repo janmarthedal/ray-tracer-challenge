@@ -1,4 +1,3 @@
-use crate::approx_eq::{assert_approx_eq, ApproxEq};
 use crate::color::Color;
 
 pub struct Canvas {
@@ -72,6 +71,7 @@ impl Canvas {
 mod tests {
 
     use super::*;
+    use crate::approx_eq::{assert_approx_eq, ApproxEq};
 
     #[test]
     fn test_creating_a_canvas() {

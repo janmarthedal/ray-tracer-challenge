@@ -1,5 +1,5 @@
 use std::ops::{Add, Mul, Sub};
-use crate::approx_eq::{ApproxEq, assert_approx_eq};
+use crate::approx_eq::ApproxEq;
 
 #[derive(Debug, Copy, Clone)]
 pub struct Color {
@@ -86,6 +86,7 @@ impl Mul for Color {
 mod tests {
 
     use super::*;
+    use crate::approx_eq::assert_approx_eq;
 
     #[test]
     fn test_colors_are_tuples() {
