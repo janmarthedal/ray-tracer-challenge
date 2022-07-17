@@ -15,10 +15,10 @@ impl Color {
 }
 
 impl ApproxEq for Color {
-    fn approx_eq(self, other: Self) -> bool {
-        self.red.approx_eq(other.red)
-            && self.green.approx_eq(other.green)
-            && self.blue.approx_eq(other.blue)
+    fn approx_eq(self, other: &Self) -> bool {
+        self.red.approx_eq(&other.red)
+            && self.green.approx_eq(&other.green)
+            && self.blue.approx_eq(&other.blue)
     }
 }
 

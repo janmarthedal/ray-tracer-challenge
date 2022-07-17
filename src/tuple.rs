@@ -45,11 +45,11 @@ impl Tuple {
 }
 
 impl ApproxEq for Tuple {
-    fn approx_eq(self, other: Self) -> bool {
-        self.x.approx_eq(other.x)
-        && self.y.approx_eq(other.y)
-        && self.z.approx_eq(other.z)
-        && self.w.approx_eq(other.w)
+    fn approx_eq(self, other: &Self) -> bool {
+        self.x.approx_eq(&other.x)
+        && self.y.approx_eq(&other.y)
+        && self.z.approx_eq(&other.z)
+        && self.w.approx_eq(&other.w)
     }
 }
 
