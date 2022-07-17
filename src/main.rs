@@ -1,3 +1,4 @@
+mod approx_eq;
 mod tuple;
 use tuple::Tuple;
 
