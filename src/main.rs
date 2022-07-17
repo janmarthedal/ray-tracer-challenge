@@ -2,7 +2,11 @@ mod approx_eq;
 mod canvas;
 mod color;
 mod tuple;
+
 use tuple::Tuple;
+use canvas::Canvas;
+use color::Color;
+use std::fs;
 
 struct Projectile {
     position: Tuple,
@@ -33,20 +37,27 @@ fn tick(env: &Environment, proj: &Projectile) -> Projectile {
 }
 
 fn main() {
-    // projectile starts one unit above the origin.
-    // velocity is normalized to 1 unit/tick.
-    let mut p = Projectile::new(
-        Tuple::new_point(0.0, 1.0, 0.0),
-        Tuple::new_vector(1.0, 1.0, 0.0).normalize(),
-    );
-    // gravity -0.1 unit/tick, and wind is -0.01 unit/tick.
-    let e = Environment::new(
-        Tuple::new_vector(0.0, -0.1, 0.0),
-        Tuple::new_vector(-0.01, 0.0, 0.0),
-    );
+    let start = Tuple::new_point(0.0, 1.0, 0.0);
+    let velocity = Tuple::new_vector(1.0, 1.8, 0.0).normalize() * 11.25;
+    let mut p = Projectile::new(start, velocity);
+
+    let gravity = Tuple::new_vector(0.0, -0.1, 0.0);
+    let wind = Tuple::new_vector(-0.01, 0.0, 0.0);
+    let e = Environment::new(gravity,wind);
+
+    let mut c = Canvas::new(900, 500);
+    let projectile_color = Color::new(0.8, 0.8, 0.8);
 
     while p.position.y > 0.0 {
-        println!("{:?}", p.position);
+        let x = p.position.x.round();
+        let y = c.height() as f64 - p.position.y.round();
+        if x >= 0.0 && x < c.width() as f64 && y >= 0.0 && y < c.height() as f64 {
+            let x = x as usize;
+            let y = y as usize;
+            c.write_pixel(x, y, projectile_color);
+        }
         p = tick(&e, &p);
     }
+
+    fs::write("canvas.ppm", c.to_ppm()).expect("Unable to write file");
 }
