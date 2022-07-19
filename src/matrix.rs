@@ -2,6 +2,14 @@ use crate::approx_eq::ApproxEq;
 use crate::tuple::Tuple;
 use std::ops::Mul;
 
+pub const IDENTITY4: Matrix<4> = Matrix::<4> {
+    elems: [
+    [1.0, 0.0, 0.0, 0.0],
+    [0.0, 1.0, 0.0, 0.0],
+    [0.0, 0.0, 1.0, 0.0],
+    [0.0, 0.0, 0.0, 1.0],
+] };
+
 #[derive(Copy, Clone, Debug)]
 pub struct Matrix<const N: usize> {
     elems: [[f64; N]; N],
@@ -53,6 +61,31 @@ impl<const N: usize> Mul<&Matrix<N>> for Matrix<N> {
             }
         }
         Self { elems }
+    }
+}
+
+impl Mul<&Tuple> for &Matrix<4> {
+    type Output = Tuple;
+
+    fn mul(self, rhs: &Tuple) -> Self::Output {
+        Tuple::new(
+            self.elems[0][0] * rhs.x
+                + self.elems[0][1] * rhs.y
+                + self.elems[0][2] * rhs.z
+                + self.elems[0][3] * rhs.w,
+            self.elems[1][0] * rhs.x
+                + self.elems[1][1] * rhs.y
+                + self.elems[1][2] * rhs.z
+                + self.elems[1][3] * rhs.w,
+            self.elems[2][0] * rhs.x
+                + self.elems[2][1] * rhs.y
+                + self.elems[2][2] * rhs.z
+                + self.elems[2][3] * rhs.w,
+            self.elems[3][0] * rhs.x
+                + self.elems[3][1] * rhs.y
+                + self.elems[3][2] * rhs.z
+                + self.elems[3][3] * rhs.w,
+        )
     }
 }
 
@@ -293,25 +326,13 @@ mod tests {
             [2.0, 4.0, 8.0, 16.0],
             [4.0, 8.0, 16.0, 32.0],
         ]);
-        let identity_matrix: Matrix<4> = Matrix::new([
-            [1.0, 0.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0, 0.0],
-            [0.0, 0.0, 1.0, 0.0],
-            [0.0, 0.0, 0.0, 1.0],
-        ]);
-        assert_approx_eq!(a * &identity_matrix, a)
+        assert_approx_eq!(a * &IDENTITY4, a)
     }
 
     #[test]
     fn test_multiplying_the_identity_matrix_by_a_tuple() {
         let a = Tuple::new(1.0, 2.0, 3.0, 4.0);
-        let identity_matrix: Matrix<4> = Matrix::new([
-            [1.0, 0.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0, 0.0],
-            [0.0, 0.0, 1.0, 0.0],
-            [0.0, 0.0, 0.0, 1.0],
-        ]);
-        assert_approx_eq!(identity_matrix * &a, a);
+        assert_approx_eq!(IDENTITY4 * &a, a);
     }
 
     #[test]
@@ -333,13 +354,7 @@ mod tests {
 
     #[test]
     fn test_transposing_the_identity_matrix() {
-        let identity_matrix: Matrix<4> = Matrix::new([
-            [1.0, 0.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0, 0.0],
-            [0.0, 0.0, 1.0, 0.0],
-            [0.0, 0.0, 0.0, 1.0],
-        ]);
-        assert_approx_eq!(identity_matrix.transpose(), identity_matrix);
+        assert_approx_eq!(IDENTITY4.transpose(), IDENTITY4);
     }
 
     #[test]
