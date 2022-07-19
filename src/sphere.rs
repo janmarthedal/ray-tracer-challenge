@@ -1,12 +1,21 @@
+use crate::world::Object;
 use crate::{ray::Ray, tuple::new_point};
 
-pub struct Sphere {}
+pub struct Sphere {
+    id: usize,
+}
 
 impl Sphere {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(id: usize) -> Self {
+        Self { id }
     }
-    pub fn intersect(&self, ray: &Ray) -> Vec<f64> {
+}
+
+impl Object for Sphere {
+    fn get_id(&self) -> usize {
+        self.id
+    }
+    fn intersect(&self, ray: &Ray) -> Vec<f64> {
         let sphere_to_ray = ray.origin - new_point(0.0, 0.0, 0.0);
 
         let a = ray.direction.dot(&ray.direction);
@@ -26,17 +35,18 @@ impl Sphere {
     }
 }
 
+
 #[cfg(test)]
 mod tests {
 
-    use crate::tuple::new_vector;
-    use crate::approx_eq::{ApproxEq, assert_approx_eq};
     use super::*;
+    use crate::approx_eq::{assert_approx_eq, ApproxEq};
+    use crate::tuple::new_vector;
 
     #[test]
     fn test_a_ray_intersects_a_sphere_at_two_points() {
         let r = Ray::new(new_point(0.0, 0.0, -5.0), new_vector(0.0, 0.0, 1.0));
-        let s = Sphere::new();
+        let s = Sphere::new(0);
         let xs = s.intersect(&r);
         assert_approx_eq!(xs, [4.0, 6.0]);
     }
@@ -44,7 +54,7 @@ mod tests {
     #[test]
     fn test_a_ray_intersects_a_sphere_at_a_tangent() {
         let r = Ray::new(new_point(0.0, 1.0, -5.0), new_vector(0.0, 0.0, 1.0));
-        let s = Sphere::new();
+        let s = Sphere::new(0);
         let xs = s.intersect(&r);
         assert_approx_eq!(xs, [5.0, 5.0]);
     }
@@ -52,7 +62,7 @@ mod tests {
     #[test]
     fn test_a_ray_misses_a_sphere() {
         let r = Ray::new(new_point(0.0, 2.0, -5.0), new_vector(0.0, 0.0, 1.0));
-        let s = Sphere::new();
+        let s = Sphere::new(0);
         let xs = s.intersect(&r);
         assert_approx_eq!(xs, []);
     }
@@ -60,7 +70,7 @@ mod tests {
     #[test]
     fn test_a_ray_originates_inside_a_sphere() {
         let r = Ray::new(new_point(0.0, 0.0, 0.0), new_vector(0.0, 0.0, 1.0));
-        let s = Sphere::new();
+        let s = Sphere::new(0);
         let xs = s.intersect(&r);
         assert_approx_eq!(xs, [-1.0, 1.0]);
     }
@@ -68,7 +78,7 @@ mod tests {
     #[test]
     fn test_a_ray_is_behind_a_sphere() {
         let r = Ray::new(new_point(0.0, 0.0, 5.0), new_vector(0.0, 0.0, 1.0));
-        let s = Sphere::new();
+        let s = Sphere::new(0);
         let xs = s.intersect(&r);
         assert_approx_eq!(xs, [-6.0, -4.0]);
     }

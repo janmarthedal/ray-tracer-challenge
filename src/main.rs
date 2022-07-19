@@ -1,11 +1,13 @@
 mod approx_eq;
 mod canvas;
 mod color;
+mod intersection;
 mod matrix;
 mod ray;
 mod sphere;
 mod transform;
 mod tuple;
+mod world;
 
 use std::f64::consts::PI;
 use std::fs;
