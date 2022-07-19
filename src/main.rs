@@ -5,60 +5,27 @@ mod matrix;
 mod transform;
 mod tuple;
 
-use tuple::{Tuple, new_point, new_vector};
+use std::f64::consts::PI;
+use std::fs;
 use canvas::Canvas;
 use color::Color;
-use std::fs;
-
-struct Projectile {
-    position: Tuple,
-    velocity: Tuple,
-}
-
-struct Environment {
-    gravity: Tuple,
-    wind: Tuple,
-}
-
-impl Projectile {
-    fn new(position: Tuple, velocity: Tuple) -> Self {
-        Self { position, velocity }
-    }
-}
-
-impl Environment {
-    fn new(gravity: Tuple, wind: Tuple) -> Self {
-        Self { gravity, wind }
-    }
-}
-
-fn tick(env: &Environment, proj: &Projectile) -> Projectile {
-    let position = proj.position + proj.velocity;
-    let velocity = proj.velocity + env.gravity + env.wind;
-    Projectile::new(position, velocity)
-}
+use transform::{rotation_y, scaling, translation};
+use tuple::new_point;
 
 fn main() {
-    let start = new_point(0.0, 1.0, 0.0);
-    let velocity = new_vector(1.0, 1.8, 0.0).normalize() * 11.25;
-    let mut p = Projectile::new(start, velocity);
+    const SIZE: usize = 400;
 
-    let gravity = new_vector(0.0, -0.1, 0.0);
-    let wind = new_vector(-0.01, 0.0, 0.0);
-    let e = Environment::new(gravity,wind);
+    let mut c = Canvas::new(SIZE, SIZE);
+    let fg = Color::new(0.9, 0.9, 0.9);
+    let twelve = new_point(0.0, 0.0, 1.0);
+    let scale_coef = 3.0 / 8.0 * SIZE as f64;
+    let scale = scaling(scale_coef, scale_coef, scale_coef);
+    let translate = translation(SIZE as f64 / 2.0, 0.0, SIZE as f64 / 2.0);
 
-    let mut c = Canvas::new(900, 500);
-    let projectile_color = Color::new(0.8, 0.8, 0.8);
-
-    while p.position.y > 0.0 {
-        let x = p.position.x.round();
-        let y = c.height() as f64 - p.position.y.round();
-        if x >= 0.0 && x < c.width() as f64 && y >= 0.0 && y < c.height() as f64 {
-            let x = x as usize;
-            let y = y as usize;
-            c.write_pixel(x, y, projectile_color);
-        }
-        p = tick(&e, &p);
+    for hour in 0..12 {
+        let rotation = rotation_y(2.0 * PI * hour as f64 / 12.0);
+        let p = translate * &scale * &rotation * &twelve;
+        c.write_pixel(p.x.round() as usize, p.z.round() as usize, fg);
     }
 
     fs::write("canvas.ppm", c.to_ppm()).expect("Unable to write file");
