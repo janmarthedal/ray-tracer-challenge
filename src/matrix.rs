@@ -26,7 +26,7 @@ impl<const N: usize> Matrix<N> {
 }
 
 impl<const N: usize> ApproxEq for Matrix<N> {
-    fn approx_eq(self, other: &Self) -> bool {
+    fn approx_eq(&self, other: &Self) -> bool {
         self.elems
             .iter()
             .zip(other.elems.iter())
