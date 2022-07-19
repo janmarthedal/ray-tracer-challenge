@@ -11,15 +11,7 @@ pub struct Tuple {
 
 impl Tuple {
     pub fn new(x: f64, y: f64, z: f64, w: f64) -> Self {
-        Tuple { x, y, z, w }
-    }
-
-    pub fn new_point(x: f64, y: f64, z: f64) -> Self {
-        Self::new(x, y, z, 1.0)
-    }
-
-    pub fn new_vector(x: f64, y: f64, z: f64) -> Self {
-        Self::new(x, y, z, 0.0)
+        Self { x, y, z, w }
     }
 
     pub fn magnitude(&self) -> f64 {
@@ -36,11 +28,12 @@ impl Tuple {
 
     pub fn cross(&self, b: &Self) -> Self {
         // assumes self and b are vectors
-        Tuple::new_vector(
-            self.y * b.z - self.z * b.y,
-            self.z * b.x - self.x * b.z,
-            self.x * b.y - self.y * b.x,
-        )
+        Self {
+            x: self.y * b.z - self.z * b.y,
+            y: self.z * b.x - self.x * b.z,
+            z: self.x * b.y - self.y * b.x,
+            w: 0.0,
+        }
     }
 }
 
@@ -144,6 +137,14 @@ impl Div<f64> for &Tuple {
     }
 }
 
+pub fn new_point(x: f64, y: f64, z: f64) -> Tuple {
+    Tuple::new(x, y, z, 1.0)
+}
+
+pub fn new_vector(x: f64, y: f64, z: f64) -> Tuple {
+    Tuple::new(x, y, z, 0.0)
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -152,7 +153,7 @@ mod tests {
 
     #[test]
     fn test_new_point() {
-        let p = Tuple::new_point(4.0, -4.0, 3.0);
+        let p = new_point(4.0, -4.0, 3.0);
         assert_approx_eq!(p.x, 4.0);
         assert_approx_eq!(p.y, -4.0);
         assert_approx_eq!(p.z, 3.0);
@@ -161,7 +162,7 @@ mod tests {
 
     #[test]
     fn test_new_vector() {
-        let p = Tuple::new_vector(4.0, -4.0, 3.0);
+        let p = new_vector(4.0, -4.0, 3.0);
         assert_approx_eq!(p.x, 4.0);
         assert_approx_eq!(p.y, -4.0);
         assert_approx_eq!(p.z, 3.0);
@@ -177,30 +178,30 @@ mod tests {
 
     #[test]
     fn test_subtracting_two_points() {
-        let p1 = Tuple::new_point(3.0, 2.0, 1.0);
-        let p2 = Tuple::new_point(5.0, 6.0, 7.0);
-        assert_approx_eq!(p1 - p2, Tuple::new_vector(-2.0, -4.0, -6.0));
+        let p1 = new_point(3.0, 2.0, 1.0);
+        let p2 = new_point(5.0, 6.0, 7.0);
+        assert_approx_eq!(p1 - p2, new_vector(-2.0, -4.0, -6.0));
     }
 
     #[test]
     fn test_subtracting_a_vector_from_a_point() {
-        let p = Tuple::new_point(3.0, 2.0, 1.0);
-        let v = Tuple::new_vector(5.0, 6.0, 7.0);
-        assert_approx_eq!(p - v, Tuple::new_point(-2.0, -4.0, -6.0));
+        let p = new_point(3.0, 2.0, 1.0);
+        let v = new_vector(5.0, 6.0, 7.0);
+        assert_approx_eq!(p - v, new_point(-2.0, -4.0, -6.0));
     }
 
     #[test]
     fn test_subtracting_two_vectors() {
-        let v1 = Tuple::new_vector(3.0, 2.0, 1.0);
-        let v2 = Tuple::new_vector(5.0, 6.0, 7.0);
-        assert_approx_eq!(v1 - v2, Tuple::new_vector(-2.0, -4.0, -6.0));
+        let v1 = new_vector(3.0, 2.0, 1.0);
+        let v2 = new_vector(5.0, 6.0, 7.0);
+        assert_approx_eq!(v1 - v2, new_vector(-2.0, -4.0, -6.0));
     }
 
     #[test]
     fn test_subtracting_a_vector_from_the_zero_vector() {
-        let zero = Tuple::new_vector(0.0, 0.0, 0.0);
-        let v = Tuple::new_vector(1.0, -2.0, 3.0);
-        assert_approx_eq!(zero - v, Tuple::new_vector(-1.0, 2.0, -3.0));
+        let zero = new_vector(0.0, 0.0, 0.0);
+        let v = new_vector(1.0, -2.0, 3.0);
+        assert_approx_eq!(zero - v, new_vector(-1.0, 2.0, -3.0));
     }
 
     #[test]
@@ -229,68 +230,68 @@ mod tests {
 
     #[test]
     fn test_the_magnitude_of_vector1() {
-        let v = Tuple::new_vector(1.0, 0.0, 0.0);
+        let v = new_vector(1.0, 0.0, 0.0);
         assert_approx_eq!(v.magnitude(), 1.0);
     }
 
     #[test]
     fn test_the_magnitude_of_vector2() {
-        let v = Tuple::new_vector(0.0, 1.0, 0.0);
+        let v = new_vector(0.0, 1.0, 0.0);
         assert_approx_eq!(v.magnitude(), 1.0);
     }
 
     #[test]
     fn test_the_magnitude_of_vector3() {
-        let v = Tuple::new_vector(0.0, 0.0, 1.0);
+        let v = new_vector(0.0, 0.0, 1.0);
         assert_approx_eq!(v.magnitude(), 1.0);
     }
 
     #[test]
     fn test_the_magnitude_of_vector4() {
-        let v = Tuple::new_vector(1.0, 2.0, 3.0);
+        let v = new_vector(1.0, 2.0, 3.0);
         assert_approx_eq!(v.magnitude(), (14f64).sqrt());
     }
 
     #[test]
     fn test_the_magnitude_of_vector5() {
-        let v = Tuple::new_vector(-1.0, -2.0, -3.0);
+        let v = new_vector(-1.0, -2.0, -3.0);
         assert_approx_eq!(v.magnitude(), (14f64).sqrt());
     }
 
     #[test]
     fn test_normalizing_vector1() {
-        let v = Tuple::new_vector(4.0, 0.0, 0.0);
-        assert_approx_eq!(v.normalize(), Tuple::new_vector(1.0, 0.0, 0.0));
+        let v = new_vector(4.0, 0.0, 0.0);
+        assert_approx_eq!(v.normalize(), new_vector(1.0, 0.0, 0.0));
     }
 
     #[test]
     fn test_normalizing_vector2() {
-        let v = Tuple::new_vector(1.0, 2.0, 3.0);
+        let v = new_vector(1.0, 2.0, 3.0);
         assert_approx_eq!(
             v.normalize(),
-            Tuple::new_vector(1.0 / 14f64.sqrt(), 2.0 / 14f64.sqrt(), 3.0 / 14f64.sqrt())
+            new_vector(1.0 / 14f64.sqrt(), 2.0 / 14f64.sqrt(), 3.0 / 14f64.sqrt())
         );
     }
 
     #[test]
     fn test_the_magnitude_of_a_normalized_vector() {
-        let v = Tuple::new_vector(1.0, 2.0, 3.0);
+        let v = new_vector(1.0, 2.0, 3.0);
         let norm = v.normalize();
         assert_approx_eq!(norm.magnitude(), 1.0);
     }
 
     #[test]
     fn test_the_dot_product_of_two_tuples() {
-        let a = Tuple::new_vector(1.0, 2.0, 3.0);
-        let b = Tuple::new_vector(2.0, 3.0, 4.0);
+        let a = new_vector(1.0, 2.0, 3.0);
+        let b = new_vector(2.0, 3.0, 4.0);
         assert_approx_eq!(a.dot(&b), 20.0);
     }
 
     #[test]
     fn test_the_cross_product_of_two_vectors() {
-        let a = Tuple::new_vector(1.0, 2.0, 3.0);
-        let b = Tuple::new_vector(2.0, 3.0, 4.0);
-        assert_approx_eq!(a.cross(&b), Tuple::new_vector(-1.0, 2.0, -1.0));
-        assert_approx_eq!(b.cross(&a), Tuple::new_vector(1.0, -2.0, 1.0));
+        let a = new_vector(1.0, 2.0, 3.0);
+        let b = new_vector(2.0, 3.0, 4.0);
+        assert_approx_eq!(a.cross(&b), new_vector(-1.0, 2.0, -1.0));
+        assert_approx_eq!(b.cross(&a), new_vector(1.0, -2.0, 1.0));
     }
 }

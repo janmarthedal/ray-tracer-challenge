@@ -5,7 +5,7 @@ mod matrix;
 mod transform;
 mod tuple;
 
-use tuple::Tuple;
+use tuple::{Tuple, new_point, new_vector};
 use canvas::Canvas;
 use color::Color;
 use std::fs;
@@ -39,12 +39,12 @@ fn tick(env: &Environment, proj: &Projectile) -> Projectile {
 }
 
 fn main() {
-    let start = Tuple::new_point(0.0, 1.0, 0.0);
-    let velocity = Tuple::new_vector(1.0, 1.8, 0.0).normalize() * 11.25;
+    let start = new_point(0.0, 1.0, 0.0);
+    let velocity = new_vector(1.0, 1.8, 0.0).normalize() * 11.25;
     let mut p = Projectile::new(start, velocity);
 
-    let gravity = Tuple::new_vector(0.0, -0.1, 0.0);
-    let wind = Tuple::new_vector(-0.01, 0.0, 0.0);
+    let gravity = new_vector(0.0, -0.1, 0.0);
+    let wind = new_vector(-0.01, 0.0, 0.0);
     let e = Environment::new(gravity,wind);
 
     let mut c = Canvas::new(900, 500);
