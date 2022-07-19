@@ -158,7 +158,7 @@ impl Matrix<4> {
             + self.elems[0][2] * self.cofactor(0, 2)
             + self.elems[0][3] * self.cofactor(0, 3)
     }
-    fn inverse(&self) -> Option<Self> {
+    pub fn inverse(&self) -> Option<Self> {
         let det = self.determinant();
         if det.approx_eq(&0.0) {
             return None;

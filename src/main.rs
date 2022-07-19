@@ -2,6 +2,7 @@ mod approx_eq;
 mod canvas;
 mod color;
 mod matrix;
+mod transform;
 mod tuple;
 
 use tuple::Tuple;
