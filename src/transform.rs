@@ -55,6 +55,15 @@ pub fn rotation_z(r: f64) -> Matrix<4> {
     ])
 }
 
+pub fn shearing(xy: f64, xz: f64, yx: f64, yz: f64, zx: f64, zy: f64) -> Matrix<4> {
+    Matrix::<4>::new([
+        [1.0, xy, xz, 0.0],
+        [yx, 1.0, yz, 0.0],
+        [zx, zy, 1.0, 0.0],
+        [0.0, 0.0, 0.0, 1.0],
+    ])
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -136,5 +145,47 @@ mod tests {
         let full_quarter = rotation_z(PI / 2.0);
         assert_approx_eq!(half_quarter * &p, new_point(-2f64.sqrt() / 2.0, 2f64.sqrt() / 2.0, 0.0));
         assert_approx_eq!(full_quarter * &p, new_point(-1.0, 0.0, 0.0));
+    }
+
+    #[test]
+    fn test_a_shearing_transformation_moves_x_in_proportion_to_y() {
+        let transform = shearing(1.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+        let p = new_point(2.0, 3.0, 4.0);
+        assert_approx_eq!(transform * &p, new_point(5.0, 3.0, 4.0));
+    }
+
+    #[test]
+    fn test_a_shearing_transformation_moves_x_in_proportion_to_z() {
+        let transform = shearing(0.0, 1.0, 0.0, 0.0, 0.0, 0.0);
+        let p = new_point(2.0, 3.0, 4.0);
+        assert_approx_eq!(transform * &p, new_point(6.0, 3.0, 4.0));
+    }
+
+    #[test]
+    fn test_a_shearing_transformation_moves_y_in_proportion_to_x() {
+        let transform = shearing(0.0, 0.0, 1.0, 0.0, 0.0, 0.0);
+        let p = new_point(2.0, 3.0, 4.0);
+        assert_approx_eq!(transform * &p, new_point(2.0, 5.0, 4.0));
+    }
+
+    #[test]
+    fn test_a_shearing_transformation_moves_y_in_proportion_to_z() {
+        let transform = shearing(0.0, 0.0, 0.0, 1.0, 0.0, 0.0);
+        let p = new_point(2.0, 3.0, 4.0);
+        assert_approx_eq!(transform * &p, new_point(2.0, 7.0, 4.0));
+    }
+
+    #[test]
+    fn test_a_shearing_transformation_moves_z_in_proportion_to_x() {
+        let transform = shearing(0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+        let p = new_point(2.0, 3.0, 4.0);
+        assert_approx_eq!(transform * &p, new_point(2.0, 3.0, 6.0));
+    }
+
+    #[test]
+    fn test_a_shearing_transformation_moves_z_in_proportion_to_y() {
+        let transform = shearing(0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+        let p = new_point(2.0, 3.0, 4.0);
+        assert_approx_eq!(transform * &p, new_point(2.0, 3.0, 7.0));
     }
 }
