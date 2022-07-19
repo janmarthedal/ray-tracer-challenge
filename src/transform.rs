@@ -1,6 +1,4 @@
 use std::f64::consts::PI;
-
-use crate::approx_eq::{assert_approx_eq, ApproxEq};
 use crate::matrix::Matrix;
 use crate::tuple::{new_point, new_vector};
 
@@ -67,6 +65,7 @@ pub fn shearing(xy: f64, xz: f64, yx: f64, yz: f64, zx: f64, zy: f64) -> Matrix<
 #[cfg(test)]
 mod tests {
 
+    use crate::approx_eq::{assert_approx_eq, ApproxEq};
     use super::*;
 
     #[test]
