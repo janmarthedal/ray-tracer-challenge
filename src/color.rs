@@ -1,5 +1,5 @@
-use std::ops::{Add, Mul, Sub};
 use crate::approx_eq::ApproxEq;
+use std::ops::{Add, Mul, Sub};
 
 #[derive(Debug, Copy, Clone)]
 pub struct Color {
@@ -7,6 +7,17 @@ pub struct Color {
     pub green: f64,
     pub blue: f64,
 }
+
+pub const WHITE: Color = Color {
+    red: 1.0,
+    green: 1.0,
+    blue: 1.0,
+};
+pub const BLACK: Color = Color {
+    red: 0.0,
+    green: 0.0,
+    blue: 0.0,
+};
 
 impl Color {
     pub fn new(red: f64, green: f64, blue: f64) -> Self {

@@ -2,6 +2,8 @@ mod approx_eq;
 mod canvas;
 mod color;
 mod intersection;
+mod light;
+mod material;
 mod matrix;
 mod point;
 mod ray;

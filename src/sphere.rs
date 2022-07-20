@@ -1,4 +1,5 @@
 use crate::point::{ORIGIN, Point};
+use crate::material::{Material, DEFAULT_MATERIAL};
 use crate::ray::Ray;
 use crate::transform::{Affine, IDENTITY_AFFINE};
 use crate::vector::Vector;
@@ -7,17 +8,22 @@ use crate::world::Object;
 pub struct Sphere {
     id: usize,
     transform: Affine,
+    material: Material,
 }
 
 impl Sphere {
     pub fn new(id: usize) -> Self {
         Self {
             id,
-            transform: IDENTITY_AFFINE
+            transform: IDENTITY_AFFINE,
+            material: DEFAULT_MATERIAL,
         }
     }
     pub fn set_transform(&mut self, transform: Affine) {
         self.transform = transform;
+    }
+    pub fn set_material(&mut self, material: Material) {
+        self.material = material;
     }
 }
 
