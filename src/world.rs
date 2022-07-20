@@ -1,10 +1,11 @@
+use crate::point::Point;
 use crate::ray::Ray;
-use crate::tuple::Tuple;
+use crate::vector::Vector;
 
 pub trait Object {
     fn get_id(&self) -> usize;
     fn intersect(&self, ray: &Ray) -> Vec<f64>;
-    fn normal_at(&self, p: &Tuple) -> Tuple;
+    fn normal_at(&self, p: &Point) -> Vector;
 }
 
 pub struct World {
