@@ -66,10 +66,36 @@ impl Add<&Tuple> for Tuple {
     }
 }
 
+impl Add<&Tuple> for &Tuple {
+    type Output = Tuple;
+
+    fn add(self, other: &Tuple) -> Self::Output {
+        Self::Output {
+            x: self.x + other.x,
+            y: self.y + other.y,
+            z: self.z + other.z,
+            w: self.w + other.w,
+        }
+    }
+}
+
 impl Sub<&Tuple> for Tuple {
     type Output = Tuple;
 
     fn sub(self, other: &Self) -> Self::Output {
+        Self::Output {
+            x: self.x - other.x,
+            y: self.y - other.y,
+            z: self.z - other.z,
+            w: self.w - other.w,
+        }
+    }
+}
+
+impl Sub<&Tuple> for &Tuple {
+    type Output = Tuple;
+
+    fn sub(self, other: &Tuple) -> Self::Output {
         Self::Output {
             x: self.x - other.x,
             y: self.y - other.y,
@@ -118,6 +144,32 @@ impl Mul<Tuple> for f64 {
     }
 }
 
+impl Mul<f64> for &Tuple {
+    type Output = Tuple;
+
+    fn mul(self, other: f64) -> Self::Output {
+        Self::Output {
+            x: self.x * other,
+            y: self.y * other,
+            z: self.z * other,
+            w: self.w * other,
+        }
+    }
+}
+
+impl Mul<&Tuple> for f64 {
+    type Output = Tuple;
+
+    fn mul(self, other: &Tuple) -> Self::Output {
+        Self::Output {
+            x: self * other.x,
+            y: self * other.y,
+            z: self * other.z,
+            w: self * other.w,
+        }
+    }
+}
+
 impl Div<f64> for Tuple {
     type Output = Tuple;
 
@@ -150,6 +202,10 @@ pub fn new_point(x: f64, y: f64, z: f64) -> Tuple {
 
 pub fn new_vector(x: f64, y: f64, z: f64) -> Tuple {
     Tuple::new(x, y, z, 0.0)
+}
+
+pub fn reflect(incoming: &Tuple, normal: &Tuple) -> Tuple {
+    incoming - &(2.0 * incoming.dot(normal) * normal)
 }
 
 #[cfg(test)]
@@ -300,5 +356,21 @@ mod tests {
         let b = new_vector(2.0, 3.0, 4.0);
         assert_approx_eq!(a.cross(&b), new_vector(-1.0, 2.0, -1.0));
         assert_approx_eq!(b.cross(&a), new_vector(1.0, -2.0, 1.0));
+    }
+
+    #[test]
+    fn test_reflecting_a_vector_approaching_at_45() {
+        let v = new_vector(1.0, -1.0, 0.0);
+        let n = new_vector(0.0, 1.0, 0.0);
+        let r = reflect(&v, &n);
+        assert_approx_eq!(r, new_vector(1.0, 1.0, 0.0));
+    }
+
+    #[test]
+    fn test_reflecting_a_vector_off_a_slanted_surface() {
+        let v = new_vector(0.0, -1.0, 0.0);
+        let n = new_vector(2f64.sqrt() / 2.0, 2f64.sqrt() / 2.0, 0.0);
+        let r = reflect(&v, &n);
+        assert_approx_eq!(r, new_vector(1.0, 0.0, 0.0));
     }
 }
