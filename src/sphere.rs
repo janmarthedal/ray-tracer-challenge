@@ -8,7 +8,7 @@ use crate::world::Object;
 pub struct Sphere {
     id: usize,
     transform: Affine,
-    material: Material,
+    pub material: Material,
 }
 
 impl Sphere {
