@@ -1,6 +1,6 @@
 use crate::matrix::{Matrix, IDENTITY4};
 use crate::ray::Ray;
-use crate::tuple::new_point;
+use crate::tuple::{Tuple, ORIGIN};
 use crate::world::Object;
 
 pub struct Sphere {
@@ -26,7 +26,7 @@ impl Object for Sphere {
     }
     fn intersect(&self, ray: &Ray) -> Vec<f64> {
         let ray = ray.transform(&self.transform.inverse().unwrap());
-        let sphere_to_ray = ray.origin - new_point(0.0, 0.0, 0.0);
+        let sphere_to_ray = ray.origin - &ORIGIN;
 
         let a = ray.direction.dot(&ray.direction);
         let b = 2.0 * ray.direction.dot(&sphere_to_ray);
@@ -43,6 +43,14 @@ impl Object for Sphere {
             vec![t1, t2]
         }
     }
+    fn normal_at(&self, world_point: &Tuple) -> Tuple {
+        let inverse_transform = self.transform.inverse().unwrap();
+        let object_point = inverse_transform * world_point;
+        let object_normal = object_point - &ORIGIN;
+        let mut world_normal = inverse_transform.transpose() * &object_normal;
+        world_normal.w = 0.0;
+        world_normal.normalize()
+    }
 }
 
 #[cfg(test)]
@@ -50,8 +58,8 @@ mod tests {
 
     use super::*;
     use crate::approx_eq::{assert_approx_eq, ApproxEq};
-    use crate::transform::{translation, scaling};
-    use crate::tuple::new_vector;
+    use crate::transform::{translation, scaling, rotation_z};
+    use crate::tuple::{new_point, new_vector};
 
     #[test]
     fn test_a_ray_intersects_a_sphere_at_two_points() {
@@ -123,5 +131,50 @@ mod tests {
         s.set_transform(translation(5.0, 0.0, 0.0));
         let xs = s.intersect(&r);
         assert_approx_eq!(xs, []);
+    }
+
+    #[test]
+    fn test_the_normal_on_a_sphere_at_a_point_on_the_x_axis() {
+        let s = Sphere::new(0);
+        let n = s.normal_at(&new_point(1.0, 0.0, 0.0));
+        assert_approx_eq!(n, new_vector(1.0, 0.0, 0.0));
+    }
+
+    #[test]
+    fn test_the_normal_on_a_sphere_at_a_point_on_the_y_axis() {
+        let s = Sphere::new(0);
+        let n = s.normal_at(&new_point(0.0, 1.0, 0.0));
+        assert_approx_eq!(n, new_vector(0.0, 1.0, 0.0));
+    }
+
+    #[test]
+    fn test_the_normal_on_a_sphere_at_a_point_on_the_z_axis() {
+        let s = Sphere::new(0);
+        let n = s.normal_at(&new_point(0.0, 0.0, 1.0));
+        assert_approx_eq!(n, new_vector(0.0, 0.0, 1.0));
+    }
+
+    #[test]
+    fn test_the_normal_on_a_sphere_at_a_nonaxial_point() {
+        let s = Sphere::new(0);
+        let c = 3f64.sqrt() / 3.0;
+        let n = s.normal_at(&new_point(c, c, c));
+        assert_approx_eq!(n, new_vector(c, c, c));
+    }
+
+    #[test]
+    fn test_computing_the_normal_on_a_translated_sphere() {
+        let mut s = Sphere::new(0);
+        s.set_transform(translation(0.0, 1.0, 0.0));
+        let n = s.normal_at(&new_point(0.0, 1.70711, -0.70711));
+        assert_approx_eq!(n, new_vector(0.0, 0.70711, -0.70711));
+    }
+
+    #[test]
+    fn test_computing_the_normal_on_a_transformed_sphere() {
+        let mut s = Sphere::new(0);
+        s.set_transform(scaling(1.0, 0.5, 1.0) * &rotation_z(std::f64::consts::PI / 5.0));
+        let n = s.normal_at(&new_point(0.0, 2f64.sqrt() / 2.0, -2f64.sqrt() / 2.0));
+        assert_approx_eq!(n, new_vector(0.0, 0.97014, -0.24254));
     }
 }

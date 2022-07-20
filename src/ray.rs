@@ -11,7 +11,7 @@ impl Ray {
         Self { origin, direction }
     }
     pub fn position(&self, t: f64) -> Tuple {
-        self.origin + self.direction * t
+        self.origin + &(self.direction * t)
     }
     pub fn transform(&self, trans: &Matrix<4>) -> Self {
         Self {

@@ -1,5 +1,5 @@
-use std::ops::{Add, Div, Mul, Neg, Sub};
 use crate::approx_eq::ApproxEq;
+use std::ops::{Add, Div, Mul, Neg, Sub};
 
 #[derive(Debug, Copy, Clone)]
 pub struct Tuple {
@@ -8,6 +8,13 @@ pub struct Tuple {
     pub z: f64,
     pub w: f64,
 }
+
+pub const ORIGIN: Tuple = Tuple {
+    x: 0.0,
+    y: 0.0,
+    z: 0.0,
+    w: 1.0,
+};
 
 impl Tuple {
     pub fn new(x: f64, y: f64, z: f64, w: f64) -> Self {
@@ -40,16 +47,16 @@ impl Tuple {
 impl ApproxEq for Tuple {
     fn approx_eq(&self, other: &Self) -> bool {
         self.x.approx_eq(&other.x)
-        && self.y.approx_eq(&other.y)
-        && self.z.approx_eq(&other.z)
-        && self.w.approx_eq(&other.w)
+            && self.y.approx_eq(&other.y)
+            && self.z.approx_eq(&other.z)
+            && self.w.approx_eq(&other.w)
     }
 }
 
-impl Add for Tuple {
+impl Add<&Tuple> for Tuple {
     type Output = Tuple;
 
-    fn add(self, other: Self) -> Self::Output {
+    fn add(self, other: &Self) -> Self::Output {
         Self::Output {
             x: self.x + other.x,
             y: self.y + other.y,
@@ -59,10 +66,10 @@ impl Add for Tuple {
     }
 }
 
-impl Sub for Tuple {
+impl Sub<&Tuple> for Tuple {
     type Output = Tuple;
 
-    fn sub(self, other: Self) -> Self::Output {
+    fn sub(self, other: &Self) -> Self::Output {
         Self::Output {
             x: self.x - other.x,
             y: self.y - other.y,
@@ -173,35 +180,35 @@ mod tests {
     fn test_adding_two_tuples() {
         let a1 = Tuple::new(3.0, -2.0, 5.0, 1.0);
         let a2 = Tuple::new(-2.0, 3.0, 1.0, 0.0);
-        assert_approx_eq!(a1 + a2, Tuple::new(1.0, 1.0, 6.0, 1.0));
+        assert_approx_eq!(a1 + &a2, Tuple::new(1.0, 1.0, 6.0, 1.0));
     }
 
     #[test]
     fn test_subtracting_two_points() {
         let p1 = new_point(3.0, 2.0, 1.0);
         let p2 = new_point(5.0, 6.0, 7.0);
-        assert_approx_eq!(p1 - p2, new_vector(-2.0, -4.0, -6.0));
+        assert_approx_eq!(p1 - &p2, new_vector(-2.0, -4.0, -6.0));
     }
 
     #[test]
     fn test_subtracting_a_vector_from_a_point() {
         let p = new_point(3.0, 2.0, 1.0);
         let v = new_vector(5.0, 6.0, 7.0);
-        assert_approx_eq!(p - v, new_point(-2.0, -4.0, -6.0));
+        assert_approx_eq!(p - &v, new_point(-2.0, -4.0, -6.0));
     }
 
     #[test]
     fn test_subtracting_two_vectors() {
         let v1 = new_vector(3.0, 2.0, 1.0);
         let v2 = new_vector(5.0, 6.0, 7.0);
-        assert_approx_eq!(v1 - v2, new_vector(-2.0, -4.0, -6.0));
+        assert_approx_eq!(v1 - &v2, new_vector(-2.0, -4.0, -6.0));
     }
 
     #[test]
     fn test_subtracting_a_vector_from_the_zero_vector() {
         let zero = new_vector(0.0, 0.0, 0.0);
         let v = new_vector(1.0, -2.0, 3.0);
-        assert_approx_eq!(zero - v, new_vector(-1.0, 2.0, -3.0));
+        assert_approx_eq!(zero - &v, new_vector(-1.0, 2.0, -3.0));
     }
 
     #[test]

@@ -47,7 +47,7 @@ fn main() {
         for x in 0..canvas_pixels {
             let world_x = -half + pixel_size * x as f64;
             let position = new_point(world_x, world_y, wall_z);
-            let r = Ray::new(ray_origin, (position - ray_origin).normalize());
+            let r = Ray::new(ray_origin, (position - &ray_origin).normalize());
             let intersections = intersect_object(&shape, &r);
 
             if intersections.hit().is_some() {
