@@ -37,7 +37,7 @@ fn main() {
     let ray_origin = Point::new(0.0, 0.0, -5.0);
     let wall_z = 10.0;
     let wall_size = 7.0;
-    let canvas_pixels = 100;
+    let canvas_pixels = 400;
     let pixel_size = wall_size / canvas_pixels as f64;
     let half = wall_size / 2.0;
 
@@ -46,7 +46,7 @@ fn main() {
     let mut sphere = Sphere::new(0);
     // sphere.set_transform(shearing(1.0, 0.0, 0.0, 0.0, 0.0, 0.0) * &scaling(0.5, 1.0, 1.0));
     let mut material = Material::new();
-    material.color = Color::new(1.0, 0.2, 1.0);
+    material.color = Color::new(1.0, 0.5, 1.0);
     sphere.set_material(material);
 
     let light = PointLight::new(Point::new(-10.0, 10.0, -10.0), Color::new(1.0, 1.0, 1.0));
@@ -63,7 +63,7 @@ fn main() {
                 let point = r.position(i.t);
                 let normal = sphere.normal_at(&point);
                 let eye = -r.direction;
-                let color = lighting(&sphere.material, &light, &point, &eye, &normal);
+                let color = lighting(sphere.get_material(), &light, &point, &eye, &normal);
                 canvas.write_pixel(x, y, color);
             }
         }

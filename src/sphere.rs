@@ -8,7 +8,7 @@ use crate::world::Object;
 pub struct Sphere {
     id: usize,
     transform: Affine,
-    pub material: Material,
+    material: Material,
 }
 
 impl Sphere {
@@ -19,17 +19,20 @@ impl Sphere {
             material: DEFAULT_MATERIAL,
         }
     }
-    pub fn set_transform(&mut self, transform: Affine) {
-        self.transform = transform;
-    }
-    pub fn set_material(&mut self, material: Material) {
-        self.material = material;
-    }
 }
 
 impl Object for Sphere {
     fn get_id(&self) -> usize {
         self.id
+    }
+    fn set_transform(&mut self, transform: Affine) {
+        self.transform = transform;
+    }
+    fn set_material(&mut self, material: Material) {
+        self.material = material;
+    }
+    fn get_material(&self) -> &Material {
+        &self.material
     }
     fn intersect(&self, ray: &Ray) -> Vec<f64> {
         let ray = ray.transform(&self.transform.inverse().unwrap());

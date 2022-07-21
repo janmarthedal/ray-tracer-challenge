@@ -23,6 +23,9 @@ impl Intersections {
     pub fn add(&mut self, i: Intersection) {
         self.intersections.push(i);
     }
+    pub fn sort(&mut self) {
+        self.intersections.sort_by(|a, b| a.t.partial_cmp(&b.t).unwrap());
+    }
     pub fn hit(&self) -> Option<&Intersection> {
         self.intersections
             .iter()
@@ -31,6 +34,10 @@ impl Intersections {
                 Some(best) if i.t > best.t => acc,
                 _ => Some(i),
             })
+    }
+    #[cfg(test)]
+    pub fn get(&self) -> Vec<Intersection> {
+        self.intersections.clone()
     }
 }
 
