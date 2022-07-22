@@ -1,8 +1,8 @@
-use std::ops::Mul;
 use crate::approx_eq::ApproxEq;
 use crate::matrix::{Matrix, IDENTITY_MATRIX};
 use crate::point::Point;
 use crate::vector::{Vector, ZERO};
+use std::ops::Mul;
 
 #[derive(Copy, Clone, Debug)]
 pub struct Affine {
@@ -74,7 +74,7 @@ impl Mul<&Affine> for &Affine {
     fn mul(self, rhs: &Affine) -> Self::Output {
         Self::Output {
             transform: self.transform * &rhs.transform,
-            translate: self * &rhs.translate
+            translate: self * &rhs.translate,
         }
     }
 }
@@ -132,12 +132,28 @@ pub fn shearing(xy: f64, xz: f64, yx: f64, yz: f64, zx: f64, zy: f64) -> Affine 
     )
 }
 
+pub fn view_transform(from: &Point, to: &Point, up: &Vector) -> Affine {
+    let forward = (to - from).normalize();
+    let upn = up.normalize();
+    let left = forward.cross(&upn);
+    let true_up = left.cross(&forward);
+    Affine::new(
+        Matrix::new([
+            [left.x, left.y, left.z],
+            [true_up.x, true_up.y, true_up.z],
+            [-forward.x, -forward.y, -forward.z],
+        ]),
+        ZERO
+    ) * &translation(-from.x, -from.y, -from.z)
+}
+
 #[cfg(test)]
 mod tests {
 
-    use super::*;
     use std::f64::consts::PI;
+    use super::*;
     use crate::approx_eq::{assert_approx_eq, ApproxEq};
+    use crate::point::ORIGIN;
 
     #[test]
     fn test_multiplying_by_a_translation_matrix() {
@@ -266,5 +282,51 @@ mod tests {
         let transform = shearing(0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
         let p = Point::new(2.0, 3.0, 4.0);
         assert_approx_eq!(transform * &p, Point::new(2.0, 3.0, 7.0));
+    }
+
+    #[test]
+    fn test_the_transformation_matrix_for_the_default_orientation() {
+        let from = ORIGIN;
+        let to = Point::new(0.0, 0.0, -1.0);
+        let up = Vector::new(0.0, 1.0, 0.0);
+        let t = view_transform(&from, &to, &up);
+        assert_approx_eq!(t, IDENTITY_AFFINE);
+    }
+
+    #[test]
+    fn test_a_view_transformation_matrix_looking_in_positive_z_direction() {
+        let from = ORIGIN;
+        let to = Point::new(0.0, 0.0, 1.0);
+        let up = Vector::new(0.0, 1.0, 0.0);
+        let t = view_transform(&from, &to, &up);
+        assert_approx_eq!(t, scaling(-1.0, 1.0, -1.0));
+    }
+
+    #[test]
+    fn test_the_view_transformation_moves_the_world() {
+        let from = Point::new(0.0, 0.0, 8.0);
+        let to = ORIGIN;
+        let up = Vector::new(0.0, 1.0, 0.0);
+        let t = view_transform(&from, &to, &up);
+        assert_approx_eq!(t, translation(0.0, 0.0, -8.0));
+    }
+
+    #[test]
+    fn test_an_arbitrary_view_transformation() {
+        let from = Point::new(1.0, 3.0, 2.0);
+        let to = Point::new(4.0, -2.0, 8.0);
+        let up = Vector::new(1.0, 1.0, 0.0);
+        let t = view_transform(&from, &to, &up);
+        assert_approx_eq!(
+            t,
+            Affine::new(
+                Matrix::new([
+                    [-0.50709, 0.50709, 0.67612],
+                    [0.76772, 0.60609, 0.12122],
+                    [-0.35857, 0.59761, -0.71714]
+                ]),
+                Vector::new(-2.36643, -2.82843, 0.0)
+            )
+        );
     }
 }

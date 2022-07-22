@@ -21,7 +21,6 @@ use material::Material;
 use point::Point;
 use ray::Ray;
 use sphere::Sphere;
-use transform::{scaling, shearing};
 use world::Object;
 
 fn intersect_object(shape: &dyn Object, ray: &Ray) -> Intersections {
