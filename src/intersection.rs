@@ -45,22 +45,18 @@ impl Intersections {
 mod tests {
 
     use super::*;
-    use crate::sphere::Sphere;
-    use crate::world::Object;
 
     #[test]
     fn test_an_intersection_encapsulates_t_and_object() {
-        let s = Sphere::new(7);
-        let i = Intersection::new(3.5, s.get_id());
+        let i = Intersection::new(3.5, 1);
         assert_eq!(i.t, 3.5);
-        assert_eq!(i.object_id, 7);
+        assert_eq!(i.object_id, 1);
     }
 
     #[test]
     fn test_aggregating_intersections() {
-        let s = Sphere::new(7);
-        let i1 = Intersection::new(1.0, s.get_id());
-        let i2 = Intersection::new(2.0, s.get_id());
+        let i1 = Intersection::new(1.0, 1);
+        let i2 = Intersection::new(2.0, 1);
         let mut xs = Intersections::new();
         xs.add(i1);
         xs.add(i2);
@@ -71,9 +67,8 @@ mod tests {
 
     #[test]
     fn test_the_hit_when_all_intersections_have_positive_t() {
-        let s = Sphere::new(7);
-        let i1 = Intersection::new(1.0, s.get_id());
-        let i2 = Intersection::new(2.0, s.get_id());
+        let i1 = Intersection::new(1.0, 1);
+        let i2 = Intersection::new(2.0, 1);
         let mut xs = Intersections::new();
         let expect = i1.clone();
         xs.add(i1);
@@ -84,9 +79,8 @@ mod tests {
 
     #[test]
     fn test_the_hit_when_some_intersections_have_negative_t() {
-        let s = Sphere::new(7);
-        let i1 = Intersection::new(-1.0, s.get_id());
-        let i2 = Intersection::new(1.0, s.get_id());
+        let i1 = Intersection::new(-1.0, 1);
+        let i2 = Intersection::new(1.0, 1);
         let mut xs = Intersections::new();
         let expect = i2.clone();
         xs.add(i2);
@@ -97,9 +91,8 @@ mod tests {
 
     #[test]
     fn test_the_hit_when_all_intersections_have_negative_t() {
-        let s = Sphere::new(7);
-        let i1 = Intersection::new(-2.0, s.get_id());
-        let i2 = Intersection::new(-1.0, s.get_id());
+        let i1 = Intersection::new(-2.0, 1);
+        let i2 = Intersection::new(-1.0, 1);
         let mut xs = Intersections::new();
         xs.add(i2);
         xs.add(i1);
@@ -109,11 +102,10 @@ mod tests {
 
     #[test]
     fn test_the_hit_is_always_the_lowest_nonnegative_intersection() {
-        let s = Sphere::new(7);
-        let i1 = Intersection::new(5.0, s.get_id());
-        let i2 = Intersection::new(7.0, s.get_id());
-        let i3 = Intersection::new(-3.0, s.get_id());
-        let i4 = Intersection::new(2.0, s.get_id());
+        let i1 = Intersection::new(5.0, 1);
+        let i2 = Intersection::new(7.0, 1);
+        let i3 = Intersection::new(-3.0, 1);
+        let i4 = Intersection::new(2.0, 1);
         let mut xs = Intersections::new();
         let expect = i4.clone();
         xs.add(i1);

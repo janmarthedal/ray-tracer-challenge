@@ -31,6 +31,7 @@ impl<T: ApproxEq, const N: usize> ApproxEq<[T; N]> for Vec<T> {
     }
 }
 
+#[cfg(test)]
 macro_rules! assert_approx_eq {
     ($left:expr, $right:expr $(,)?) => {
         match (&$left, &$right) {
@@ -58,4 +59,5 @@ macro_rules! assert_approx_eq {
     };
 }
 
+#[cfg(test)]
 pub(crate) use assert_approx_eq;

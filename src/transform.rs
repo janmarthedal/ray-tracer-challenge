@@ -6,7 +6,7 @@ use std::ops::Mul;
 
 #[derive(Copy, Clone, Debug)]
 pub struct Affine {
-    pub transform: Matrix,
+    transform: Matrix,
     translate: Vector,
 }
 
@@ -21,6 +21,9 @@ impl Affine {
             transform,
             translate,
         }
+    }
+    pub fn get_transform(&self) -> Matrix {
+        self.transform
     }
     pub fn inverse(&self) -> Option<Self> {
         self.transform.inverse().map(|inv_trans| Self {
