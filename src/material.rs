@@ -1,7 +1,7 @@
-use crate::color::{Color, WHITE, BLACK};
+use crate::color::{Color, BLACK, WHITE};
 use crate::light::PointLight;
 use crate::point::Point;
-use crate::vector::{Vector, reflect};
+use crate::vector::{reflect, Vector};
 
 #[derive(Clone, Copy)]
 pub struct Material {
@@ -84,7 +84,6 @@ impl Material {
         ambient + diffuse + specular
     }
 }
-
 
 #[cfg(test)]
 mod tests {

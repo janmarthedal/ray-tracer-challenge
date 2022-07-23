@@ -69,18 +69,6 @@ impl<'a> World<'a> {
             handle_shadows: true,
         }
     }
-    #[cfg(test)]
-    fn new_no_shadows() -> Self {
-        Self {
-            lights: vec![],
-            objects: vec![],
-            handle_shadows: false,
-        }
-    }
-    #[cfg(test)]
-    pub fn clear_lights(&mut self) {
-        self.lights.clear();
-    }
     pub fn add_light(&mut self, light: PointLight) {
         self.lights.push(light);
     }
@@ -166,8 +154,54 @@ mod tests {
     use crate::approx_eq::{assert_approx_eq, ApproxEq};
     use crate::color::WHITE;
     use crate::material::Material;
-    use crate::sphere::Sphere;
+    use crate::point::ORIGIN;
     use crate::transform::{rotation_z, scaling, translation};
+
+    // Duplicate the Sphere shape
+    struct TestShape {}
+
+    impl TestShape {
+        pub fn new() -> Self {
+            Self {}
+        }
+    }
+
+    impl LocalShape for TestShape {
+        fn local_intersect(&self, ray: &Ray) -> Vec<f64> {
+            let sphere_to_ray = ray.origin - &ORIGIN;
+
+            let a = ray.direction.dot(&ray.direction);
+            let b = 2.0 * ray.direction.dot(&sphere_to_ray);
+            let c = sphere_to_ray.dot(&sphere_to_ray) - 1.0;
+
+            let discriminant = b * b - 4.0 * a * c;
+
+            if discriminant < 0.0 {
+                vec![]
+            } else {
+                let sqrt_disc = discriminant.sqrt();
+                let t1 = (-b - sqrt_disc) / (2.0 * a);
+                let t2 = (-b + sqrt_disc) / (2.0 * a);
+                vec![t1, t2]
+            }
+        }
+        fn local_normal_at(&self, object_point: &Point) -> Vector {
+            object_point - &ORIGIN
+        }
+    }
+
+    impl<'a> World<'a> {
+        fn new_no_shadows() -> Self {
+            Self {
+                lights: vec![],
+                objects: vec![],
+                handle_shadows: false,
+            }
+        }
+        fn clear_lights(&mut self) {
+            self.lights.clear();
+        }
+    }
 
     fn default_light() -> PointLight {
         PointLight::new(Point::new(-10.0, 10.0, -10.0), WHITE)
@@ -175,40 +209,36 @@ mod tests {
 
     fn default_world<'a>() -> World<'a> {
         let mut world = World::new_no_shadows();
-
         world.add_light(default_light());
-
         world.add_shape(
-            Shape::new(Sphere::new()).set_material(
+            Shape::new(TestShape::new()).set_material(
                 Material::new()
                     .set_color(Color::new(0.8, 1.0, 0.6))
                     .set_diffuse(0.7)
                     .set_specular(0.2),
             ),
         );
-
-        world.add_shape(Shape::new(Sphere::new()).set_transform(scaling(0.5, 0.5, 0.5)));
-
+        world.add_shape(Shape::new(TestShape::new()).set_transform(scaling(0.5, 0.5, 0.5)));
         world
     }
 
     #[test]
     fn test_a_shapes_default_transformation() {
-        let s = Shape::new(Sphere::new());
+        let s = Shape::new(TestShape::new());
         assert_approx_eq!(s.transform, &IDENTITY_AFFINE);
     }
 
     #[test]
     fn test_changing_a_shapes_transformation() {
         let t = translation(2.0, 3.0, 4.0);
-        let s = Shape::new(Sphere::new()).set_transform(t);
+        let s = Shape::new(TestShape::new()).set_transform(t);
         assert_approx_eq!(s.transform, &t);
     }
 
     #[test]
     fn test_intersecting_a_scaled_sphere_with_a_ray() {
         let r = Ray::new(Point::new(0.0, 0.0, -5.0), Vector::new(0.0, 0.0, 1.0));
-        let s = Shape::new(Sphere::new()).set_transform(scaling(2.0, 2.0, 2.0));
+        let s = Shape::new(TestShape::new()).set_transform(scaling(2.0, 2.0, 2.0));
         let xs = s.intersect(&r);
         assert_approx_eq!(xs, [3.0, 7.0]);
     }
@@ -216,21 +246,21 @@ mod tests {
     #[test]
     fn test_intersecting_a_translated_sphere_with_a_ray() {
         let r = Ray::new(Point::new(0.0, 0.0, -5.0), Vector::new(0.0, 0.0, 1.0));
-        let s = Shape::new(Sphere::new()).set_transform(translation(5.0, 0.0, 0.0));
+        let s = Shape::new(TestShape::new()).set_transform(translation(5.0, 0.0, 0.0));
         let xs = s.intersect(&r);
         assert_approx_eq!(xs, []);
     }
 
     #[test]
     fn test_computing_the_normal_on_a_translated_sphere() {
-        let s = Shape::new(Sphere::new()).set_transform(translation(0.0, 1.0, 0.0));
+        let s = Shape::new(TestShape::new()).set_transform(translation(0.0, 1.0, 0.0));
         let n = s.normal_at(&Point::new(0.0, 1.70711, -0.70711));
         assert_approx_eq!(n, Vector::new(0.0, 0.70711, -0.70711));
     }
 
     #[test]
     fn test_computing_the_normal_on_a_transformed_sphere() {
-        let s = Shape::new(Sphere::new())
+        let s = Shape::new(TestShape::new())
             .set_transform(scaling(1.0, 0.5, 1.0) * &rotation_z(std::f64::consts::PI / 5.0));
         let n = s.normal_at(&Point::new(0.0, 2f64.sqrt() / 2.0, -2f64.sqrt() / 2.0));
         assert_approx_eq!(n, Vector::new(0.0, 0.97014, -0.24254));
@@ -251,7 +281,7 @@ mod tests {
     fn test_precomputing_the_state_of_an_intersection() {
         let r = Ray::new(Point::new(0.0, 0.0, -5.0), Vector::new(0.0, 0.0, 1.0));
         let mut world = World::new();
-        let shape = world.add_shape(Shape::new(Sphere::new()));
+        let shape = world.add_shape(Shape::new(TestShape::new()));
         let i = Intersection::new(4.0, shape);
         let comp = world.prepare_computations(&i, &r);
         assert_approx_eq!(comp.t, 4.0);
@@ -265,7 +295,7 @@ mod tests {
     fn test_the_hit_when_an_intersection_occurs_on_the_outside() {
         let r = Ray::new(Point::new(0.0, 0.0, -5.0), Vector::new(0.0, 0.0, 1.0));
         let mut world = World::new();
-        let shape = world.add_shape(Shape::new(Sphere::new()));
+        let shape = world.add_shape(Shape::new(TestShape::new()));
         let i = Intersection::new(4.0, shape);
         let comp = world.prepare_computations(&i, &r);
         assert!(!comp.inside);
@@ -275,7 +305,7 @@ mod tests {
     fn test_the_hit_when_an_intersection_occurs_on_the_inside() {
         let r = Ray::new(Point::new(0.0, 0.0, 0.0), Vector::new(0.0, 0.0, 1.0));
         let mut world = World::new();
-        let shape = world.add_shape(Shape::new(Sphere::new()));
+        let shape = world.add_shape(Shape::new(TestShape::new()));
         let i = Intersection::new(1.0, shape);
         let comp = world.prepare_computations(&i, &r);
         assert_approx_eq!(comp.point, Point::new(0.0, 0.0, 1.0));
@@ -332,7 +362,7 @@ mod tests {
         let mut world = World::new();
         world.add_light(PointLight::new(Point::new(-10.0, 10.0, -10.0), WHITE));
         world.add_shape(
-            Shape::new(Sphere::new()).set_material(
+            Shape::new(TestShape::new()).set_material(
                 Material::new()
                     .set_color(Color::new(0.8, 1.0, 0.6))
                     .set_diffuse(0.7)
@@ -341,7 +371,7 @@ mod tests {
             ),
         );
         world.add_shape(
-            Shape::new(Sphere::new())
+            Shape::new(TestShape::new())
                 .set_transform(scaling(0.5, 0.5, 0.5))
                 .set_material(Material::new().set_ambient(1.0)),
         );
