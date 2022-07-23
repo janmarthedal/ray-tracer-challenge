@@ -4,6 +4,7 @@ mod canvas;
 mod color;
 mod intersection;
 mod light;
+mod local_shape;
 mod material;
 mod matrix;
 mod point;
@@ -23,7 +24,7 @@ use std::f64::consts::PI;
 use std::fs;
 use transform::{rotation_x, rotation_y, scaling, translation, view_transform};
 use vector::Vector;
-use world::World;
+use world::{Shape, World};
 
 fn main() {
     let mut world = World::new();
@@ -35,14 +36,14 @@ fn main() {
 
     // floor
     world.add_shape(
-        Sphere::new()
+        Shape::new(Sphere::new())
             .set_transform(scaling(10.0, 0.01, 10.0))
             .set_material(wall_material),
-    );
+    ); 
 
     // left wall
     world.add_shape(
-        Sphere::new()
+        Shape::new(Sphere::new())
             .set_transform(
                 translation(0.0, 0.0, 5.0)
                     * &rotation_y(-PI / 4.0)
@@ -54,7 +55,7 @@ fn main() {
 
     // right wall
     world.add_shape(
-        Sphere::new()
+        Shape::new(Sphere::new())
             .set_transform(
                 translation(0.0, 0.0, 5.0)
                     * &rotation_y(PI / 4.0)
@@ -66,7 +67,7 @@ fn main() {
 
     // middle sphere
     world.add_shape(
-        Sphere::new()
+        Shape::new(Sphere::new())
             .set_transform(translation(-0.5, 1.0, 0.5))
             .set_material(
                 Material::new()
@@ -78,7 +79,7 @@ fn main() {
 
     // right sphere
     world.add_shape(
-        Sphere::new()
+        Shape::new(Sphere::new())
             .set_transform(translation(1.5, 0.5, -0.5) * &scaling(0.5, 0.5, 0.5))
             .set_material(
                 Material::new()
@@ -90,7 +91,7 @@ fn main() {
 
     // left sphere
     world.add_shape(
-        Sphere::new()
+        Shape::new(Sphere::new())
             .set_transform(translation(-1.5, 0.33, -0.75) * &scaling(0.33, 0.33, 0.33))
             .set_material(
                 Material::new()
@@ -100,7 +101,7 @@ fn main() {
             ),
     );
 
-    let camera = Camera::new(800, 400, PI / 3.0).set_transform(view_transform(
+    let camera = Camera::new(1600, 800, PI / 3.0).set_transform(view_transform(
         &Point::new(0.0, 1.5, -5.0),
         &Point::new(0.0, 1.0, 0.0),
         &Vector::new(0.0, 1.0, 0.0),
