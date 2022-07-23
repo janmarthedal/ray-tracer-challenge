@@ -74,7 +74,7 @@ impl Mul<&Affine> for &Affine {
     fn mul(self, rhs: &Affine) -> Self::Output {
         Self::Output {
             transform: self.transform * &rhs.transform,
-            translate: self * &rhs.translate,
+            translate: self.transform * &rhs.translate + &self.translate,
         }
     }
 }
@@ -111,7 +111,7 @@ pub fn rotation_y(r: f64) -> Affine {
     let cr = r.cos();
     let sr = r.sin();
     Affine::new(
-        Matrix::new([[cr, 0.0, sr], [0.0, 0.0, 0.0], [-sr, 0.0, cr]]),
+        Matrix::new([[cr, 0.0, sr], [0.0, 1.0, 0.0], [-sr, 0.0, cr]]),
         ZERO,
     )
 }

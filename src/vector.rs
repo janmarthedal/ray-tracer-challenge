@@ -1,5 +1,5 @@
 use crate::approx_eq::ApproxEq;
-use std::ops::{Div, Mul, Neg, Sub};
+use std::ops::{Add, Div, Mul, Neg, Sub};
 
 #[derive(Debug, Copy, Clone)]
 pub struct Vector {
@@ -46,27 +46,43 @@ impl ApproxEq for Vector {
     }
 }
 
-impl Sub<&Vector> for Vector {
+impl Add<&Vector> for &Vector {
     type Output = Vector;
 
-    fn sub(self, other: &Self) -> Self::Output {
+    fn add(self, rhs: &Vector) -> Self::Output {
         Self::Output {
-            x: self.x - other.x,
-            y: self.y - other.y,
-            z: self.z - other.z,
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+            z: self.z + rhs.z,
         }
+    }
+}
+
+impl Add<&Vector> for Vector {
+    type Output = Vector;
+
+    fn add(self, rhs: &Self) -> Self::Output {
+        &self + rhs
     }
 }
 
 impl Sub<&Vector> for &Vector {
     type Output = Vector;
 
-    fn sub(self, other: &Vector) -> Self::Output {
+    fn sub(self, rhs: &Vector) -> Self::Output {
         Self::Output {
-            x: self.x - other.x,
-            y: self.y - other.y,
-            z: self.z - other.z,
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+            z: self.z - rhs.z,
         }
+    }
+}
+
+impl Sub<&Vector> for Vector {
+    type Output = Vector;
+
+    fn sub(self, rhs: &Self) -> Self::Output {
+        &self - rhs
     }
 }
 

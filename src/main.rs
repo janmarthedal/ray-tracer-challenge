@@ -1,4 +1,5 @@
 mod approx_eq;
+mod camera;
 mod canvas;
 mod color;
 mod intersection;
@@ -12,61 +13,93 @@ mod transform;
 mod vector;
 mod world;
 
-use std::fs;
-use canvas::Canvas;
-use color::Color;
-use intersection::{Intersection, Intersections};
-use light::{PointLight, lighting};
+use camera::Camera;
+use color::{Color, WHITE};
+use light::PointLight;
 use material::Material;
 use point::Point;
-use ray::Ray;
-use sphere::Sphere;
-use world::Object;
-
-fn intersect_object(shape: &dyn Object, ray: &Ray) -> Intersections {
-    let mut intersections = Intersections::new();
-    let xs = shape.intersect(ray);
-    for t in xs {
-        intersections.add(Intersection::new(t, shape.get_id()));
-    }
-    intersections
-}
+use std::f64::consts::PI;
+use std::fs;
+use transform::{rotation_x, rotation_y, scaling, translation, view_transform};
+use vector::Vector;
+use world::World;
 
 fn main() {
-    let ray_origin = Point::new(0.0, 0.0, -5.0);
-    let wall_z = 10.0;
-    let wall_size = 7.0;
-    let canvas_pixels = 400;
-    let pixel_size = wall_size / canvas_pixels as f64;
-    let half = wall_size / 2.0;
+    let mut world = World::new();
+    world.clear_lights();
+    world.add_light(PointLight::new(Point::new(-10.0, 10.0, -10.0), WHITE));
 
-    let mut canvas = Canvas::new(canvas_pixels, canvas_pixels);
+    let wall_material = Material::new()
+        .set_color(Color::new(1.0, 0.9, 0.9))
+        .set_specular(0.0);
 
-    let mut sphere = Sphere::new(0);
-    // sphere.set_transform(shearing(1.0, 0.0, 0.0, 0.0, 0.0, 0.0) * &scaling(0.5, 1.0, 1.0));
-    let mut material = Material::new();
-    material.color = Color::new(1.0, 0.5, 1.0);
-    sphere.set_material(material);
+    let floor_id = world.add_sphere();
+    world.set_transform(floor_id, scaling(10.0, 0.01, 10.0));
+    world.set_material(floor_id, wall_material);
 
-    let light = PointLight::new(Point::new(-10.0, 10.0, -10.0), Color::new(1.0, 1.0, 1.0));
+    let left_wall_id = world.add_sphere();
+    world.set_transform(
+        left_wall_id,
+        translation(0.0, 0.0, 5.0)
+            * &rotation_y(-PI / 4.0)
+            * &rotation_x(PI / 2.0)
+            * &scaling(10.0, 0.01, 10.0),
+    );
+    world.set_material(left_wall_id, wall_material);
 
-    for y in 0..canvas_pixels {
-        let world_y = half - pixel_size * y as f64;
-        for x in 0..canvas_pixels {
-            let world_x = -half + pixel_size * x as f64;
-            let position = Point::new(world_x, world_y, wall_z);
-            let r = Ray::new(ray_origin, (position - &ray_origin).normalize());
-            let intersections = intersect_object(&sphere, &r);
+    let right_wall_id = world.add_sphere();
+    world.set_transform(
+        right_wall_id,
+        translation(0.0, 0.0, 5.0)
+            * &rotation_y(PI / 4.0)
+            * &rotation_x(PI / 2.0)
+            * &scaling(10.0, 0.01, 10.0),
+    );
+    world.set_material(right_wall_id, wall_material);
 
-            if let Some(i) = intersections.hit() {
-                let point = r.position(i.t);
-                let normal = sphere.normal_at(&point);
-                let eye = -r.direction;
-                let color = lighting(sphere.get_material(), &light, &point, &eye, &normal);
-                canvas.write_pixel(x, y, color);
-            }
-        }
-    }
+    let middle_id = world.add_sphere();
+    world.set_transform(middle_id, translation(-0.5, 1.0, 0.5));
+    world.set_material(
+        middle_id,
+        Material::new()
+            .set_color(Color::new(0.1, 1.0, 0.5))
+            .set_diffuse(0.7)
+            .set_specular(0.3),
+    );
+
+    let right_id = world.add_sphere();
+    world.set_transform(
+        right_id,
+        translation(1.5, 0.5, -0.5) * &scaling(0.5, 0.5, 0.5),
+    );
+    world.set_material(
+        right_id,
+        Material::new()
+            .set_color(Color::new(0.5, 1.0, 0.1))
+            .set_diffuse(0.7)
+            .set_specular(0.3),
+    );
+
+    let left_id = world.add_sphere();
+    world.set_transform(
+        left_id,
+        translation(-1.5, 0.33, -0.75) * &scaling(0.33, 0.33, 0.33),
+    );
+    world.set_material(
+        left_id,
+        Material::new()
+            .set_color(Color::new(1.0, 0.8, 0.1))
+            .set_diffuse(0.7)
+            .set_specular(0.3),
+    );
+
+    let camera = Camera::new(400, 200, PI / 3.0).set_transform(view_transform(
+        &Point::new(0.0, 1.5, -5.0),
+        &Point::new(0.0, 1.0, 0.0),
+        &Vector::new(0.0, 1.0, 0.0),
+    ));
+
+    let canvas = camera.render(&world);
 
     fs::write("canvas.ppm", canvas.to_ppm()).expect("Unable to write file");
 }
