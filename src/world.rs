@@ -36,11 +36,11 @@ impl<'a> Shape<'a> {
         let ray = ray.transform(&self.transform.inverse().unwrap());
         self.local_shape.local_intersect(&ray)
     }
-    fn normal_at(&self, world_point: &Point) -> Vector {
+    fn normal_at(&self, point: &Point) -> Vector {
         let inverse_transform = self.transform.inverse().unwrap();
-        let object_point = inverse_transform * world_point;
-        let object_normal = self.local_shape.local_normal_at(&object_point);
-        let world_normal = inverse_transform.get_transform().transpose() * &object_normal;
+        let local_point = inverse_transform * point;
+        let local_normal = self.local_shape.local_normal_at(&local_point);
+        let world_normal = inverse_transform.get_transform().transpose() * &local_normal;
         world_normal.normalize()
     }
 }

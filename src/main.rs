@@ -7,6 +7,7 @@ mod light;
 mod local_shape;
 mod material;
 mod matrix;
+mod plane;
 mod point;
 mod ray;
 mod sphere;
@@ -18,52 +19,25 @@ use camera::Camera;
 use color::{Color, WHITE};
 use light::PointLight;
 use material::Material;
+use plane::Plane;
 use point::Point;
 use sphere::Sphere;
 use std::f64::consts::PI;
 use std::fs;
-use transform::{rotation_x, rotation_y, scaling, translation, view_transform};
+use transform::{scaling, translation, view_transform};
 use vector::Vector;
 use world::{Shape, World};
 
 fn main() {
     let mut world = World::new();
     world.add_light(PointLight::new(Point::new(-10.0, 10.0, -10.0), WHITE));
+    world.add_light(PointLight::new(Point::new(20.0, 10.0, -10.0), Color::new(0.5, 0.5, 0.5)));
 
     let wall_material = Material::new()
         .set_color(Color::new(1.0, 0.9, 0.9))
         .set_specular(0.0);
 
-    // floor
-    world.add_shape(
-        Shape::new(Sphere::new())
-            .set_transform(scaling(10.0, 0.01, 10.0))
-            .set_material(wall_material),
-    ); 
-
-    // left wall
-    world.add_shape(
-        Shape::new(Sphere::new())
-            .set_transform(
-                translation(0.0, 0.0, 5.0)
-                    * &rotation_y(-PI / 4.0)
-                    * &rotation_x(PI / 2.0)
-                    * &scaling(10.0, 0.01, 10.0),
-            )
-            .set_material(wall_material),
-    );
-
-    // right wall
-    world.add_shape(
-        Shape::new(Sphere::new())
-            .set_transform(
-                translation(0.0, 0.0, 5.0)
-                    * &rotation_y(PI / 4.0)
-                    * &rotation_x(PI / 2.0)
-                    * &scaling(10.0, 0.01, 10.0),
-            )
-            .set_material(wall_material),
-    );
+    world.add_shape(Shape::new(Plane::new()).set_material(wall_material));
 
     // middle sphere
     world.add_shape(
