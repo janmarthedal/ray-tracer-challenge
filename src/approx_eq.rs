@@ -5,7 +5,7 @@ where
     fn approx_eq(&self, other: &Rhs) -> bool;
 }
 
-const EPSILON: f64 = 0.00001;
+pub const EPSILON: f64 = 0.00001;
 
 impl ApproxEq for f64 {
     fn approx_eq(&self, other: &f64) -> bool {

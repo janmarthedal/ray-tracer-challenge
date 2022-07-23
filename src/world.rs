@@ -1,3 +1,4 @@
+use crate::approx_eq::EPSILON;
 use crate::color::{Color, BLACK};
 use crate::intersection::{Intersection, Intersections};
 use crate::light::PointLight;
@@ -15,12 +16,14 @@ pub trait Object {
 pub struct World<'a> {
     lights: Vec<PointLight>,
     objects: Vec<Box<dyn Object + 'a>>,
+    handle_shadows: bool,
 }
 
 struct Computations {
     t: f64,
     object_id: usize,
     point: Point,
+    over_point: Point,
     eyev: Vector,
     normalv: Vector,
     inside: bool,
@@ -31,6 +34,14 @@ impl<'a> World<'a> {
         Self {
             lights: vec![],
             objects: vec![],
+            handle_shadows: true,
+        }
+    }
+    fn new_no_shadows() -> Self {
+        Self {
+            lights: vec![],
+            objects: vec![],
+            handle_shadows: false,
         }
     }
     #[cfg(test)]
@@ -40,14 +51,6 @@ impl<'a> World<'a> {
     pub fn add_light(&mut self, light: PointLight) {
         self.lights.push(light);
     }
-    // fn add_shape(&mut self, object: Box<dyn Object>) -> usize {
-    //     let id = self.objects.len();
-    //     self.objects.push(object);
-    //     id
-    // }
-    // pub fn add_sphere(&mut self, object: Sphere) -> usize {
-    //     self.add_shape(Box::new(object))
-    // }
     pub fn add_shape(&mut self, object: impl Object + 'a) -> usize {
         let id = self.objects.len();
         self.objects.push(Box::new(object));
@@ -67,14 +70,17 @@ impl<'a> World<'a> {
     fn prepare_computations(&self, intersection: &Intersection, ray: &Ray) -> Computations {
         let point = ray.position(intersection.t);
         let eyev = -ray.direction;
-        let normalv = self.objects[intersection.object_id].normal_at(&point);
-        let inside = normalv.dot(&eyev) < 0.0;
+        let nv = self.objects[intersection.object_id].normal_at(&point);
+        let inside = nv.dot(&eyev) < 0.0;
+        let normalv = if inside { -nv } else { nv };
+        let over_point = point + &(&normalv * EPSILON);
         Computations {
             t: intersection.t,
             object_id: intersection.object_id,
             point,
+            over_point,
             eyev,
-            normalv: if inside { -normalv } else { normalv },
+            normalv,
             inside,
         }
     }
@@ -82,7 +88,8 @@ impl<'a> World<'a> {
         let mut result = BLACK;
         let material = self.objects[comps.object_id].get_material();
         for light in &self.lights {
-            let color = material.lighting(&light, &comps.point, &comps.eyev, &comps.normalv);
+            let shadowed = self.handle_shadows && self.is_shadowed(light, &comps.over_point);
+            let color = material.lighting(&light, &comps.over_point, &comps.eyev, &comps.normalv, shadowed);
             result = result + color;
         }
         result
@@ -96,6 +103,21 @@ impl<'a> World<'a> {
             BLACK
         }
     }
+    fn is_shadowed(&self, light: &PointLight, point: &Point) -> bool {
+        let v = light.vector_from(point);
+        let distance = v.magnitude();
+        let direction = v.normalize();
+
+        let r = Ray::new(*point, direction);
+        let intersections = self.intersect(&r);
+
+        if let Some(h) = intersections.hit() {
+            if h.t < distance {
+                return true;
+            }
+        }
+        false
+    }
 }
 
 #[cfg(test)]
@@ -107,10 +129,14 @@ mod tests {
     use crate::sphere::Sphere;
     use crate::transform::scaling;
 
-    fn default_world<'a>() -> World<'a> {
-        let mut world = World::new();
+    fn default_light() -> PointLight {
+        PointLight::new(Point::new(-10.0, 10.0, -10.0), WHITE)
+    }
 
-        world.add_light(PointLight::new(Point::new(-10.0, 10.0, -10.0), WHITE));
+    fn default_world<'a>() -> World<'a> {
+        let mut world = World::new_no_shadows();
+
+        world.add_light(default_light());
 
         world.add_shape(
             Sphere::new().set_material(
@@ -239,5 +265,33 @@ mod tests {
         let r = Ray::new(Point::new(0.0, 0.0, 0.75), Vector::new(0.0, 0.0, -1.0));
         let c = world.color_at(&r);
         assert_approx_eq!(c, WHITE);
+    }
+
+    #[test]
+    fn test_there_is_no_shadow_when_nothing_is_collinear_with_point_and_light() {
+        let w = default_world();
+        let p = Point::new(0.0, 10.0, 0.0);
+        assert!(!w.is_shadowed(&default_light(), &p));
+    }
+
+    #[test]
+    fn test_the_shadow_when_an_object_is_between_the_point_and_the_light() {
+        let w = default_world();
+        let p = Point::new(10.0, -10.0, 10.0);
+        assert!(w.is_shadowed(&default_light(), &p));
+    }
+
+    #[test]
+    fn test_there_is_no_shadow_when_an_object_is_behind_the_light() {
+        let w = default_world();
+        let p = Point::new(-20.0, 20.0, -20.0);
+        assert!(!w.is_shadowed(&default_light(), &p));
+    }
+
+    #[test]
+    fn test_there_is_no_shadow_when_an_object_is_behind_the_point() {
+        let w = default_world();
+        let p = Point::new(-2.0, 2.0, -2.0);
+        assert!(!w.is_shadowed(&default_light(), &p));
     }
 }

@@ -45,13 +45,17 @@ impl Material {
         point: &Point,
         eyev: &Vector,
         normalv: &Vector,
+        in_shadow: bool,
     ) -> Color {
         // combine the surface color with the light's color/intensity
         let effective_color = light.combine(&self.color);
-        // find the direction to the light source
-        let lightv = light.direction_from(point);
         // compute the ambient contribution
         let ambient = effective_color * self.ambient;
+        if in_shadow {
+            return ambient;
+        }
+        // find the direction to the light source
+        let lightv = light.vector_from(point).normalize();
         // light_dot_normal represents the cosine of the angle between the # light vector and the normal vector. A negative number means the
         // light is on the other side of the surface.
         let light_dot_normal = lightv.dot(normalv);
@@ -78,5 +82,82 @@ impl Material {
         }
         // Add the three contributions together to get the final shading
         ambient + diffuse + specular
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+    use crate::approx_eq::{assert_approx_eq, ApproxEq};
+    use crate::material::Material;
+    use crate::point::ORIGIN;
+    use crate::vector::Vector;
+
+    #[test]
+    fn test_lighting_with_the_eye_between_the_light_and_the_surface() {
+        let m = Material::new();
+        let position = ORIGIN;
+        let eyev = Vector::new(0.0, 0.0, -1.0);
+        let normalv = Vector::new(0.0, 0.0, -1.0);
+        let light = PointLight::new(Point::new(0.0, 0.0, -10.0), WHITE);
+        let result = m.lighting(&light, &position, &eyev, &normalv, false);
+        assert_approx_eq!(result, Color::new(1.9, 1.9, 1.9));
+    }
+
+    #[test]
+    fn test_lighting_with_the_eye_between_light_and_surface_eye_offset_45() {
+        let m = Material::new();
+        let position = ORIGIN;
+        let eyev = Vector::new(0.0, 2f64.sqrt() / 2.0, -2f64.sqrt() / 2.0);
+        let normalv = Vector::new(0.0, 0.0, -1.0);
+        let light = PointLight::new(Point::new(0.0, 0.0, -10.0), WHITE);
+        let result = m.lighting(&light, &position, &eyev, &normalv, false);
+        assert_approx_eq!(result, WHITE);
+    }
+
+    #[test]
+    fn test_lighting_with_the_eye_opposite_surface_light_offset_45() {
+        let m = Material::new();
+        let position = ORIGIN;
+        let eyev = Vector::new(0.0, 0.0, -1.0);
+        let normalv = Vector::new(0.0, 0.0, -1.0);
+        let light = PointLight::new(Point::new(0.0, 10.0, -10.0), WHITE);
+        let result = m.lighting(&light, &position, &eyev, &normalv, false);
+        assert_approx_eq!(result, Color::new(0.7364, 0.7364, 0.7364));
+    }
+
+    #[test]
+    fn test_lighting_with_eye_in_the_path_of_the_reflection_vector() {
+        let m = Material::new();
+        let position = ORIGIN;
+        let eyev = Vector::new(0.0, -2f64.sqrt() / 2.0, -2f64.sqrt() / 2.0);
+        let normalv = Vector::new(0.0, 0.0, -1.0);
+        let light = PointLight::new(Point::new(0.0, 10.0, -10.0), WHITE);
+        let result = m.lighting(&light, &position, &eyev, &normalv, false);
+        assert_approx_eq!(result, Color::new(1.6364, 1.6364, 1.6364));
+    }
+
+    #[test]
+    fn test_lighting_with_the_light_behind_the_surface() {
+        let m = Material::new();
+        let position = ORIGIN;
+        let eyev = Vector::new(0.0, 0.0, -1.0);
+        let normalv = Vector::new(0.0, 0.0, -1.0);
+        let light = PointLight::new(Point::new(0.0, 0.0, 10.0), WHITE);
+        let result = m.lighting(&light, &position, &eyev, &normalv, false);
+        assert_approx_eq!(result, Color::new(0.1, 0.1, 0.1));
+    }
+
+    #[test]
+    fn test_lighting_with_the_surface_in_shadow() {
+        let m = Material::new();
+        let position = ORIGIN;
+        let eyev = Vector::new(0.0, 0.0, -1.0);
+        let normalv = Vector::new(0.0, 0.0, -1.0);
+        let light = PointLight::new(Point::new(0.0, 0.0, -10.0), WHITE);
+        let result = m.lighting(&light, &position, &eyev, &normalv, true);
+        assert_approx_eq!(result, Color::new(0.1, 0.1, 0.1));
     }
 }
