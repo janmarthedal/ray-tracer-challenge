@@ -20,14 +20,14 @@ use camera::Camera;
 use color::{Color, WHITE};
 use light::PointLight;
 use material::Material;
-use pattern::StripedPattern;
+use pattern::{CheckersPattern, StripedPattern};
 use plane::Plane;
 use point::Point;
 use shape::Shape;
 use sphere::Sphere;
 use std::f64::consts::PI;
 use std::fs;
-use transform::{scaling, translation, view_transform, rotation_y};
+use transform::{rotation_y, scaling, translation, view_transform, IDENTITY_AFFINE};
 use vector::Vector;
 use world::World;
 
@@ -40,7 +40,10 @@ fn main() {
     ));
 
     let wall_material = Material::new()
-        .set_color(Color::new(1.0, 0.9, 0.9))
+        .set_pattern(
+            CheckersPattern::new(Color::new(1.0, 0.9, 0.9), Color::new(0.5, 0.45, 0.45)),
+            IDENTITY_AFFINE,
+        )
         .set_specular(0.0);
 
     world.add_shape(Shape::new(Plane::new()).set_material(wall_material));
@@ -51,7 +54,10 @@ fn main() {
             .set_transform(translation(-0.5, 1.0, 0.5) * &rotation_y(PI / 4.0))
             .set_material(
                 Material::new()
-                    .set_pattern(StripedPattern::new(Color::new(0.1, 1.0, 0.5), Color::new(0.1, 0.5, 1.0)), scaling(0.1, 0.1, 0.1))
+                    .set_pattern(
+                        StripedPattern::new(Color::new(0.1, 1.0, 0.5), Color::new(0.1, 0.5, 1.0)),
+                        scaling(0.1, 0.1, 0.1),
+                    )
                     .set_diffuse(0.7)
                     .set_specular(0.3),
             ),
