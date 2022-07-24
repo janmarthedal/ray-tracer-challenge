@@ -1,4 +1,4 @@
-use crate::local_shape::LocalShape;
+use crate::shape::LocalShape;
 use crate::point::{Point, ORIGIN};
 use crate::ray::Ray;
 use crate::vector::Vector;

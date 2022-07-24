@@ -4,7 +4,7 @@ mod canvas;
 mod color;
 mod intersection;
 mod light;
-mod local_shape;
+mod shape;
 mod material;
 mod matrix;
 mod plane;
@@ -21,12 +21,13 @@ use light::PointLight;
 use material::Material;
 use plane::Plane;
 use point::Point;
+use shape::Shape;
 use sphere::Sphere;
 use std::f64::consts::PI;
 use std::fs;
 use transform::{scaling, translation, view_transform};
 use vector::Vector;
-use world::{Shape, World};
+use world::World;
 
 fn main() {
     let mut world = World::new();

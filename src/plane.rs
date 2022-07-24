@@ -1,5 +1,5 @@
 use crate::approx_eq::EPSILON;
-use crate::local_shape::LocalShape;
+use crate::shape::LocalShape;
 use crate::point::Point;
 use crate::ray::Ray;
 use crate::vector::Vector;
@@ -29,7 +29,7 @@ impl LocalShape for Plane {
 mod tests {
 
     use crate::approx_eq::{ApproxEq, assert_approx_eq};
-    use crate::local_shape::LocalShape;
+    use crate::shape::LocalShape;
     use crate::vector::Vector;
     use super::*;
 
