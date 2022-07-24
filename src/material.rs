@@ -1,11 +1,17 @@
 use crate::color::{Color, BLACK, WHITE};
 use crate::light::PointLight;
+use crate::pattern::Pattern;
 use crate::point::Point;
+use crate::transform::Affine;
 use crate::vector::{reflect, Vector};
 
-#[derive(Clone, Copy)]
-pub struct Material {
-    color: Color,
+enum PatternWrap<'a> {
+    Solid(Color),
+    Custom(Box<dyn Pattern + 'a>, Affine),
+}
+
+pub struct Material<'a> {
+    color: PatternWrap<'a>,
     ambient: f64,
     diffuse: f64,
     specular: f64,
@@ -13,42 +19,60 @@ pub struct Material {
 }
 
 pub const DEFAULT_MATERIAL: Material = Material {
-    color: WHITE,
+    color: PatternWrap::Solid(WHITE),
     ambient: 0.1,
     diffuse: 0.9,
     specular: 0.9,
     shininess: 200.0,
 };
 
-impl Material {
+impl<'a> Material<'a> {
     pub fn new() -> Self {
         Self { ..DEFAULT_MATERIAL }
     }
     pub fn set_color(&self, color: Color) -> Self {
-        Self { color, ..*self }
+        Self {
+            color: PatternWrap::Solid(color),
+            ..*self
+        }
     }
-    pub fn set_ambient(&self, ambient: f64) -> Self {
-        Self { ambient, ..*self }
+    pub fn set_pattern(&self, pattern: impl Pattern + 'a, transform: Affine) -> Self {
+        let inverse_transform = transform.inverse().unwrap();
+        Self {
+            color: PatternWrap::Custom(Box::new(pattern), inverse_transform),
+            ..*self
+        }
     }
-    pub fn set_diffuse(&self, diffuse: f64) -> Self {
-        Self { diffuse, ..*self }
+    pub fn set_ambient(self, ambient: f64) -> Self {
+        Self { ambient, ..self }
     }
-    pub fn set_specular(&self, specular: f64) -> Self {
-        Self { specular, ..*self }
+    pub fn set_diffuse(self, diffuse: f64) -> Self {
+        Self { diffuse, ..self }
     }
-    pub fn set_shininess(&self, shininess: f64) -> Self {
-        Self { shininess, ..*self }
+    pub fn set_specular(self, specular: f64) -> Self {
+        Self { specular, ..self }
+    }
+    pub fn set_shininess(self, shininess: f64) -> Self {
+        Self { shininess, ..self }
     }
     pub fn lighting(
         &self,
         light: &PointLight,
+        shape_inv_transform: &Affine,
         point: &Point,
         eyev: &Vector,
         normalv: &Vector,
         in_shadow: bool,
     ) -> Color {
+        let color = match &self.color {
+            PatternWrap::Solid(c) => *c,
+            PatternWrap::Custom(getter, pattern_inv_trans) => {
+                let p = pattern_inv_trans * &(shape_inv_transform * point);
+                getter.get_color(&p)
+            }
+        };
         // combine the surface color with the light's color/intensity
-        let effective_color = light.combine(&self.color);
+        let effective_color = light.combine(&color);
         // compute the ambient contribution
         let ambient = effective_color * self.ambient;
         if in_shadow {
@@ -92,6 +116,7 @@ mod tests {
     use crate::approx_eq::{assert_approx_eq, ApproxEq};
     use crate::material::Material;
     use crate::point::ORIGIN;
+    use crate::transform::IDENTITY_AFFINE;
     use crate::vector::Vector;
 
     #[test]
@@ -101,7 +126,7 @@ mod tests {
         let eyev = Vector::new(0.0, 0.0, -1.0);
         let normalv = Vector::new(0.0, 0.0, -1.0);
         let light = PointLight::new(Point::new(0.0, 0.0, -10.0), WHITE);
-        let result = m.lighting(&light, &position, &eyev, &normalv, false);
+        let result = m.lighting(&light, &IDENTITY_AFFINE, &position, &eyev, &normalv, false);
         assert_approx_eq!(result, Color::new(1.9, 1.9, 1.9));
     }
 
@@ -112,7 +137,7 @@ mod tests {
         let eyev = Vector::new(0.0, 2f64.sqrt() / 2.0, -2f64.sqrt() / 2.0);
         let normalv = Vector::new(0.0, 0.0, -1.0);
         let light = PointLight::new(Point::new(0.0, 0.0, -10.0), WHITE);
-        let result = m.lighting(&light, &position, &eyev, &normalv, false);
+        let result = m.lighting(&light, &IDENTITY_AFFINE, &position, &eyev, &normalv, false);
         assert_approx_eq!(result, WHITE);
     }
 
@@ -123,7 +148,7 @@ mod tests {
         let eyev = Vector::new(0.0, 0.0, -1.0);
         let normalv = Vector::new(0.0, 0.0, -1.0);
         let light = PointLight::new(Point::new(0.0, 10.0, -10.0), WHITE);
-        let result = m.lighting(&light, &position, &eyev, &normalv, false);
+        let result = m.lighting(&light, &IDENTITY_AFFINE, &position, &eyev, &normalv, false);
         assert_approx_eq!(result, Color::new(0.7364, 0.7364, 0.7364));
     }
 
@@ -134,7 +159,7 @@ mod tests {
         let eyev = Vector::new(0.0, -2f64.sqrt() / 2.0, -2f64.sqrt() / 2.0);
         let normalv = Vector::new(0.0, 0.0, -1.0);
         let light = PointLight::new(Point::new(0.0, 10.0, -10.0), WHITE);
-        let result = m.lighting(&light, &position, &eyev, &normalv, false);
+        let result = m.lighting(&light, &IDENTITY_AFFINE, &position, &eyev, &normalv, false);
         assert_approx_eq!(result, Color::new(1.6364, 1.6364, 1.6364));
     }
 
@@ -145,7 +170,7 @@ mod tests {
         let eyev = Vector::new(0.0, 0.0, -1.0);
         let normalv = Vector::new(0.0, 0.0, -1.0);
         let light = PointLight::new(Point::new(0.0, 0.0, 10.0), WHITE);
-        let result = m.lighting(&light, &position, &eyev, &normalv, false);
+        let result = m.lighting(&light, &IDENTITY_AFFINE, &position, &eyev, &normalv, false);
         assert_approx_eq!(result, Color::new(0.1, 0.1, 0.1));
     }
 
@@ -156,7 +181,7 @@ mod tests {
         let eyev = Vector::new(0.0, 0.0, -1.0);
         let normalv = Vector::new(0.0, 0.0, -1.0);
         let light = PointLight::new(Point::new(0.0, 0.0, -10.0), WHITE);
-        let result = m.lighting(&light, &position, &eyev, &normalv, true);
+        let result = m.lighting(&light, &IDENTITY_AFFINE, &position, &eyev, &normalv, true);
         assert_approx_eq!(result, Color::new(0.1, 0.1, 0.1));
     }
 }

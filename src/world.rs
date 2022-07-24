@@ -9,7 +9,7 @@ use crate::vector::Vector;
 
 pub struct World<'a> {
     lights: Vec<PointLight>,
-    objects: Vec<Shape<'a>>,
+    shapes: Vec<Shape<'a>>,
     handle_shadows: bool,
 }
 
@@ -27,7 +27,7 @@ impl<'a> World<'a> {
     pub fn new() -> Self {
         Self {
             lights: vec![],
-            objects: vec![],
+            shapes: vec![],
             handle_shadows: true,
         }
     }
@@ -35,13 +35,13 @@ impl<'a> World<'a> {
         self.lights.push(light);
     }
     pub fn add_shape(&mut self, object: Shape<'a>) -> usize {
-        let id = self.objects.len();
-        self.objects.push(object);
+        let id = self.shapes.len();
+        self.shapes.push(object);
         id
     }
     fn intersect(&self, ray: &Ray) -> Intersections {
         let mut xs = Intersections::new();
-        for (i, obj) in self.objects.iter().enumerate() {
+        for (i, obj) in self.shapes.iter().enumerate() {
             let obj_xs = obj.intersect(ray);
             for t in obj_xs {
                 xs.add(Intersection::new(t, i));
@@ -53,7 +53,7 @@ impl<'a> World<'a> {
     fn prepare_computations(&self, intersection: &Intersection, ray: &Ray) -> Computations {
         let point = ray.position(intersection.t);
         let eyev = -ray.direction;
-        let nv = self.objects[intersection.object_id].normal_at(&point);
+        let nv = self.shapes[intersection.object_id].normal_at(&point);
         let inside = nv.dot(&eyev) < 0.0;
         let normalv = if inside { -nv } else { nv };
         let over_point = point + &(&normalv * EPSILON);
@@ -68,12 +68,14 @@ impl<'a> World<'a> {
         }
     }
     fn shade_hit(&self, comps: &Computations) -> Color {
+        let shape = &self.shapes[comps.object_id];
+        let material = shape.get_material();
         let mut result = BLACK;
-        let material = self.objects[comps.object_id].get_material();
         for light in &self.lights {
             let shadowed = self.handle_shadows && self.is_shadowed(light, &comps.over_point);
             let color = material.lighting(
                 &light,
+                shape.get_inverse_transform(),
                 &comps.over_point,
                 &comps.eyev,
                 &comps.normalv,
@@ -123,7 +125,7 @@ mod tests {
         fn new_no_shadows() -> Self {
             Self {
                 lights: vec![],
-                objects: vec![],
+                shapes: vec![],
                 handle_shadows: false,
             }
         }

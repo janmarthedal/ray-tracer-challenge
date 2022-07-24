@@ -4,12 +4,13 @@ mod canvas;
 mod color;
 mod intersection;
 mod light;
-mod shape;
 mod material;
 mod matrix;
+mod pattern;
 mod plane;
 mod point;
 mod ray;
+mod shape;
 mod sphere;
 mod transform;
 mod vector;
@@ -19,20 +20,24 @@ use camera::Camera;
 use color::{Color, WHITE};
 use light::PointLight;
 use material::Material;
+use pattern::StripedPattern;
 use plane::Plane;
 use point::Point;
 use shape::Shape;
 use sphere::Sphere;
 use std::f64::consts::PI;
 use std::fs;
-use transform::{scaling, translation, view_transform};
+use transform::{scaling, translation, view_transform, rotation_y};
 use vector::Vector;
 use world::World;
 
 fn main() {
     let mut world = World::new();
     world.add_light(PointLight::new(Point::new(-10.0, 10.0, -10.0), WHITE));
-    world.add_light(PointLight::new(Point::new(20.0, 10.0, -10.0), Color::new(0.5, 0.5, 0.5)));
+    world.add_light(PointLight::new(
+        Point::new(20.0, 10.0, -10.0),
+        Color::new(0.5, 0.5, 0.5),
+    ));
 
     let wall_material = Material::new()
         .set_color(Color::new(1.0, 0.9, 0.9))
@@ -43,10 +48,10 @@ fn main() {
     // middle sphere
     world.add_shape(
         Shape::new(Sphere::new())
-            .set_transform(translation(-0.5, 1.0, 0.5))
+            .set_transform(translation(-0.5, 1.0, 0.5) * &rotation_y(PI / 4.0))
             .set_material(
                 Material::new()
-                    .set_color(Color::new(0.1, 1.0, 0.5))
+                    .set_pattern(StripedPattern::new(Color::new(0.1, 1.0, 0.5), Color::new(0.1, 0.5, 1.0)), scaling(0.1, 0.1, 0.1))
                     .set_diffuse(0.7)
                     .set_specular(0.3),
             ),

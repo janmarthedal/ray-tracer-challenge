@@ -10,37 +10,42 @@ pub trait LocalShape {
 }
 
 pub struct Shape<'a> {
-    transform: Affine,
-    material: Material,
+    inverse_transform: Affine,
+    material: Material<'a>,
     local_shape: Box<dyn LocalShape + 'a>,
 }
 
 impl<'a> Shape<'a> {
     pub fn new(local_shape: impl LocalShape + 'a) -> Self {
         Self {
-            transform: IDENTITY_AFFINE,
+            inverse_transform: IDENTITY_AFFINE,
             material: DEFAULT_MATERIAL,
             local_shape: Box::new(local_shape),
         }
     }
     pub fn set_transform(self, transform: Affine) -> Self {
-        Self { transform, ..self }
+        Self {
+            inverse_transform: transform.inverse().unwrap(),
+            ..self
+        }
     }
-    pub fn set_material(self, material: Material) -> Self {
+    pub fn set_material(self, material: Material<'a>) -> Self {
         Self { material, ..self }
     }
     pub fn get_material(&self) -> &Material {
         &self.material
     }
+    pub fn get_inverse_transform(&self) -> &Affine {
+        &self.inverse_transform
+    }
     pub fn intersect(&self, ray: &Ray) -> Vec<f64> {
-        let ray = ray.transform(&self.transform.inverse().unwrap());
+        let ray = ray.transform(&self.inverse_transform);
         self.local_shape.local_intersect(&ray)
     }
     pub fn normal_at(&self, point: &Point) -> Vector {
-        let inverse_transform = self.transform.inverse().unwrap();
-        let local_point = inverse_transform * point;
+        let local_point = self.inverse_transform * point;
         let local_normal = self.local_shape.local_normal_at(&local_point);
-        let world_normal = inverse_transform.get_transform().transpose() * &local_normal;
+        let world_normal = self.inverse_transform.get_transform().transpose() * &local_normal;
         world_normal.normalize()
     }
 }
@@ -64,7 +69,14 @@ mod tests {
     impl LocalShape for TestShape {
         fn local_intersect(&self, ray: &Ray) -> Vec<f64> {
             // hack to get the local ray values out
-            vec![ray.origin.x, ray.origin.y, ray.origin.z, ray.direction.x, ray.direction.y, ray.direction.z]
+            vec![
+                ray.origin.x,
+                ray.origin.y,
+                ray.origin.z,
+                ray.direction.x,
+                ray.direction.y,
+                ray.direction.z,
+            ]
         }
         fn local_normal_at(&self, object_point: &Point) -> Vector {
             object_point - &ORIGIN
@@ -74,14 +86,14 @@ mod tests {
     #[test]
     fn test_a_shapes_default_transformation() {
         let s = Shape::new(TestShape::new());
-        assert_approx_eq!(s.transform, &IDENTITY_AFFINE);
+        assert_approx_eq!(s.inverse_transform, &IDENTITY_AFFINE);
     }
 
     #[test]
     fn test_changing_a_shapes_transformation() {
         let t = translation(2.0, 3.0, 4.0);
         let s = Shape::new(TestShape::new()).set_transform(t);
-        assert_approx_eq!(s.transform, &t);
+        assert_approx_eq!(s.inverse_transform, &t.inverse().unwrap());
     }
 
     #[test]
