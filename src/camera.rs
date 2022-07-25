@@ -2,7 +2,7 @@ use crate::canvas::Canvas;
 use crate::point::{Point, ORIGIN};
 use crate::ray::Ray;
 use crate::transform::{Affine, IDENTITY_AFFINE};
-use crate::world::World;
+use crate::world::{World, RECURSION_LIMIT};
 
 pub struct Camera {
     hsize: usize,
@@ -63,7 +63,7 @@ impl Camera {
         for y in 0..self.vsize {
             for x in 0..self.hsize {
                 let ray = self.ray_for_pixel(x, y);
-                let color = world.color_at(&ray);
+                let color = world.color_at(&ray, RECURSION_LIMIT);
                 image.write_pixel(x, y, color);
             }
         }

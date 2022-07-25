@@ -57,7 +57,7 @@ impl Sub for Color {
     }
 }
 
-impl Mul<f64> for Color {
+impl Mul<f64> for &Color {
     type Output = Color;
 
     fn mul(self, other: f64) -> Self::Output {
@@ -69,10 +69,18 @@ impl Mul<f64> for Color {
     }
 }
 
-impl Mul<Color> for f64 {
+impl Mul<f64> for Color {
     type Output = Color;
 
-    fn mul(self, other: Color) -> Self::Output {
+    fn mul(self, other: f64) -> Self::Output {
+        &self * other
+    }
+}
+
+/* impl Mul<&Color> for f64 {
+    type Output = Color;
+
+    fn mul(self, other: &Color) -> Self::Output {
         Color {
             red: self * other.red,
             green: self * other.green,
@@ -80,6 +88,14 @@ impl Mul<Color> for f64 {
         }
     }
 }
+
+impl Mul<Color> for f64 {
+    type Output = Color;
+
+    fn mul(self, other: Color) -> Self::Output {
+        self * &other
+    }
+} */
 
 impl Mul<&Color> for Color {
     type Output = Color;
@@ -125,12 +141,6 @@ mod tests {
     fn test_multiplying_a_color_by_a_scalar() {
         let c = Color::new(0.2, 0.3, 0.4);
         assert_approx_eq!(c * 2.0, Color::new(0.4, 0.6, 0.8));
-    }
-
-    #[test]
-    fn test_multiplying_a_scalar_by_a_color() {
-        let c = Color::new(0.2, 0.3, 0.4);
-        assert_approx_eq!(2.0 * c, Color::new(0.4, 0.6, 0.8));
     }
 
     #[test]

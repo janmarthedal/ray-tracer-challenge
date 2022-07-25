@@ -1,3 +1,4 @@
+use crate::approx_eq::EPSILON;
 use crate::color::{Color, BLACK, WHITE};
 use crate::light::PointLight;
 use crate::pattern::Pattern;
@@ -16,6 +17,7 @@ pub struct Material<'a> {
     diffuse: f64,
     specular: f64,
     shininess: f64,
+    reflective: f64,
 }
 
 pub const DEFAULT_MATERIAL: Material = Material {
@@ -24,6 +26,7 @@ pub const DEFAULT_MATERIAL: Material = Material {
     diffuse: 0.9,
     specular: 0.9,
     shininess: 200.0,
+    reflective: 0.0,
 };
 
 impl<'a> Material<'a> {
@@ -54,6 +57,15 @@ impl<'a> Material<'a> {
     }
     pub fn set_shininess(self, shininess: f64) -> Self {
         Self { shininess, ..self }
+    }
+    pub fn set_reflective(self, reflective: f64) -> Self {
+        Self { reflective, ..self }
+    }
+    pub fn is_reflective(&self) -> bool {
+        self.reflective > EPSILON
+    }
+    pub fn reflected_color(&self, color: &Color) -> Color {
+        color * self.reflective
     }
     pub fn lighting(
         &self,
