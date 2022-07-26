@@ -20,10 +20,13 @@ struct Computations {
     object_id: usize,
     point: Point,
     over_point: Point,
+    under_point: Point,
     eyev: Vector,
     normalv: Vector,
     reflectv: Vector,
     inside: bool,
+    n1: f64,
+    n2: f64,
 }
 
 impl<'a> World<'a> {
@@ -44,10 +47,20 @@ impl<'a> World<'a> {
     }
     fn intersect(&self, ray: &Ray) -> Intersections {
         Intersections::new(self.shapes.iter().enumerate().flat_map(|(i, obj)| {
-            obj.intersect(ray).iter().map(|t| Intersection::new(*t, i)).collect::<Vec<_>>()
+            obj.intersect(ray)
+                .iter()
+                .map(|t| Intersection::new(*t, i))
+                .collect::<Vec<_>>()
         }))
     }
-    fn prepare_computations(&self, intersection: &Intersection, ray: &Ray) -> Computations {
+    fn prepare_computations(
+        &self,
+        intersections: Intersections,
+        intersection_index: usize,
+        ray: &Ray,
+    ) -> Computations {
+        let intersections: Vec<Intersection> = Vec::from(intersections);
+        let intersection = intersections[intersection_index];
         let point = ray.position(intersection.t);
         let eyev = -ray.direction;
         let nv = self.shapes[intersection.object_id].normal_at(&point);
@@ -55,15 +68,45 @@ impl<'a> World<'a> {
         let normalv = if inside { -nv } else { nv };
         let reflectv = reflect(&ray.direction, &normalv);
         let over_point = point + &(&normalv * EPSILON);
+        let under_point = point - &(&normalv * EPSILON);
+        let mut containers: Vec<usize> = vec![];
+        let mut n1 = 1.0;
+        let mut n2 = 1.0;
+        for (index, i) in intersections.iter().enumerate() {
+            if index == intersection_index {
+                if let Some(object_id) = containers.last() {
+                    n1 = self.shapes[*object_id]
+                        .get_material()
+                        .get_refractive_index();
+                }
+            }
+            match containers.iter().position(|c| *c == i.object_id) {
+                Some(p) => {
+                    containers.remove(p);
+                }
+                None => containers.push(i.object_id),
+            };
+            if index == intersection_index {
+                if let Some(object_id) = containers.last() {
+                    n2 = self.shapes[*object_id]
+                        .get_material()
+                        .get_refractive_index();
+                }
+                break;
+            }
+        }
         Computations {
             t: intersection.t,
             object_id: intersection.object_id,
             point,
             over_point,
+            under_point,
             eyev,
             normalv,
             reflectv,
             inside,
+            n1,
+            n2,
         }
     }
     fn shade_hit(&self, comps: &Computations, remaining: isize) -> Color {
@@ -89,8 +132,8 @@ impl<'a> World<'a> {
     }
     pub fn color_at(&self, ray: &Ray, remaining: isize) -> Color {
         let intersections = self.intersect(ray);
-        if let Some(intersection) = intersections.hit() {
-            let comps = self.prepare_computations(intersection, ray);
+        if let Some(intersection_index) = intersections.hit_index() {
+            let comps = self.prepare_computations(intersections, intersection_index, ray);
             self.shade_hit(&comps, remaining)
         } else {
             BLACK
@@ -104,8 +147,9 @@ impl<'a> World<'a> {
         let r = Ray::new(*point, direction);
         let intersections = self.intersect(&r);
 
-        if let Some(h) = intersections.hit() {
-            if h.t < distance {
+        if let Some(intersection_index) = intersections.hit_index() {
+            let intersection = Vec::from(intersections)[intersection_index];
+            if intersection.t < distance {
                 return true;
             }
         }
@@ -133,7 +177,7 @@ mod tests {
     use crate::plane::Plane;
     use crate::point::ORIGIN;
     use crate::sphere::Sphere;
-    use crate::transform::{scaling, translation};
+    use crate::transform::{scaling, translation, Affine};
 
     impl<'a> World<'a> {
         fn new_no_shadows() -> Self {
@@ -167,12 +211,25 @@ mod tests {
         world
     }
 
+    fn new_glass_sphere<'a>(transform: Affine, refractive_index: f64) -> Shape<'a> {
+        Shape::new(Sphere::new())
+            .set_material(
+                Material::new()
+                    .set_transparency(1.0)
+                    .set_refractive_index(refractive_index),
+            )
+            .set_transform(transform)
+    }
+
     #[test]
     fn test_intersect_a_world_with_a_ray() {
         let w = default_world();
         let r = Ray::new(Point::new(0.0, 0.0, -5.0), Vector::new(0.0, 0.0, 1.0));
         let xs = w.intersect(&r);
-        assert_approx_eq!(xs.get(), [4.0, 4.5, 5.5, 6.0]);
+        assert_approx_eq!(
+            Vec::from(xs).iter().map(|i| i.t).collect::<Vec<_>>(),
+            [4.0, 4.5, 5.5, 6.0]
+        );
     }
 
     #[test]
@@ -181,7 +238,7 @@ mod tests {
         let mut world = World::new();
         let shape = world.add_shape(Shape::new(Sphere::new()));
         let i = Intersection::new(4.0, shape);
-        let comp = world.prepare_computations(&i, &r);
+        let comp = world.prepare_computations(Intersections::new([i]), 0, &r);
         assert_approx_eq!(comp.t, 4.0);
         assert_eq!(comp.object_id, shape);
         assert_approx_eq!(comp.point, Point::new(0.0, 0.0, -1.0));
@@ -195,7 +252,7 @@ mod tests {
         let mut world = World::new();
         let shape = world.add_shape(Shape::new(Sphere::new()));
         let i = Intersection::new(4.0, shape);
-        let comp = world.prepare_computations(&i, &r);
+        let comp = world.prepare_computations(Intersections::new([i]), 0, &r);
         assert!(!comp.inside);
     }
 
@@ -205,7 +262,7 @@ mod tests {
         let mut world = World::new();
         let shape = world.add_shape(Shape::new(Sphere::new()));
         let i = Intersection::new(1.0, shape);
-        let comp = world.prepare_computations(&i, &r);
+        let comp = world.prepare_computations(Intersections::new([i]), 0, &r);
         assert_approx_eq!(comp.point, Point::new(0.0, 0.0, 1.0));
         assert_approx_eq!(comp.eyev, Vector::new(0.0, 0.0, -1.0));
         assert!(comp.inside);
@@ -218,7 +275,7 @@ mod tests {
         let r = Ray::new(Point::new(0.0, 0.0, -5.0), Vector::new(0.0, 0.0, 1.0));
         let object_id = 0;
         let i = Intersection::new(4.0, object_id);
-        let comps = w.prepare_computations(&i, &r);
+        let comps = w.prepare_computations(Intersections::new([i]), 0, &r);
         let c = w.shade_hit(&comps, RECURSION_LIMIT);
         assert_approx_eq!(c, Color::new(0.38066, 0.47583, 0.2855));
     }
@@ -234,7 +291,7 @@ mod tests {
         let r = Ray::new(Point::new(0.0, 0.0, 0.0), Vector::new(0.0, 0.0, 1.0));
         let object_id = 1;
         let i = Intersection::new(0.5, object_id);
-        let comps = w.prepare_computations(&i, &r);
+        let comps = w.prepare_computations(Intersections::new([i]), 0, &r);
         let c = w.shade_hit(&comps, RECURSION_LIMIT);
         assert_approx_eq!(c, Color::new(0.90498, 0.90498, 0.90498));
     }
@@ -316,7 +373,7 @@ mod tests {
             Vector::new(0.0, -2f64.sqrt() / 2.0, 2f64.sqrt() / 2.0),
         );
         let i = Intersection::new(2f64.sqrt(), id);
-        let comps = w.prepare_computations(&i, &r);
+        let comps = w.prepare_computations(Intersections::new([i]), 0, &r);
         assert_approx_eq!(
             &comps.reflectv,
             Vector::new(0.0, 2f64.sqrt() / 2.0, 2f64.sqrt() / 2.0)
@@ -342,7 +399,7 @@ mod tests {
         );
         let r = Ray::new(ORIGIN, Vector::new(0.0, 0.0, 1.0));
         let i = Intersection::new(1.0, id2);
-        let comps = world.prepare_computations(&i, &r);
+        let comps = world.prepare_computations(Intersections::new([i]), 0, &r);
         let color = world.reflected_color(&comps, RECURSION_LIMIT);
         assert_approx_eq!(color, BLACK);
     }
@@ -360,7 +417,7 @@ mod tests {
             Vector::new(0.0, -2f64.sqrt() / 2.0, 2f64.sqrt() / 2.0),
         );
         let i = Intersection::new(2f64.sqrt(), id3);
-        let comps = w.prepare_computations(&i, &r);
+        let comps = w.prepare_computations(Intersections::new([i]), 0, &r);
         let color = w.reflected_color(&comps, RECURSION_LIMIT);
         assert_approx_eq!(color, Color::new(0.19033, 0.23792, 0.14275));
     }
@@ -378,7 +435,7 @@ mod tests {
             Vector::new(0.0, -2f64.sqrt() / 2.0, 2f64.sqrt() / 2.0),
         );
         let i = Intersection::new(2f64.sqrt(), id3);
-        let comps = w.prepare_computations(&i, &r);
+        let comps = w.prepare_computations(Intersections::new([i]), 0, &r);
         let color = w.shade_hit(&comps, RECURSION_LIMIT);
         assert_approx_eq!(color, Color::new(0.87676, 0.92434, 0.82917));
     }
@@ -414,8 +471,43 @@ mod tests {
             Vector::new(0.0, -2f64.sqrt() / 2.0, 2f64.sqrt() / 2.0),
         );
         let i = Intersection::new(2f64.sqrt(), id3);
-        let comps = w.prepare_computations(&i, &r);
+        let comps = w.prepare_computations(Intersections::new([i]), 0, &r);
         let color = w.reflected_color(&comps, 0);
         assert_approx_eq!(color, BLACK);
+    }
+
+    #[test]
+    fn test_finding_n1_and_n2_at_various_intersections() {
+        let mut world = World::new();
+        let a = world.add_shape(new_glass_sphere(scaling(2.0, 2.0, 2.0), 1.5));
+        let b = world.add_shape(new_glass_sphere(translation(0.0, 0.0, -0.25), 2.0));
+        let c = world.add_shape(new_glass_sphere(translation(0.0, 0.0, 0.25), 2.5));
+        let r = Ray::new(Point::new(0.0, 0.0, -4.0), Vector::new(0.0, 0.0, 1.0));
+        let xs = Intersections::new([
+            Intersection::new(2.0, a),
+            Intersection::new(2.75, b),
+            Intersection::new(3.25, c),
+            Intersection::new(4.75, b),
+            Intersection::new(5.25, c),
+            Intersection::new(6.0, a),
+        ]);
+        let comps = world.prepare_computations(xs.clone(), 0, &r);
+        assert_approx_eq!(comps.n1, 1.0);
+        assert_approx_eq!(comps.n2, 1.5);
+        let comps = world.prepare_computations(xs.clone(), 1, &r);
+        assert_approx_eq!(comps.n1, 1.5);
+        assert_approx_eq!(comps.n2, 2.0);
+        let comps = world.prepare_computations(xs.clone(), 2, &r);
+        assert_approx_eq!(comps.n1, 2.0);
+        assert_approx_eq!(comps.n2, 2.5);
+        let comps = world.prepare_computations(xs.clone(), 3, &r);
+        assert_approx_eq!(comps.n1, 2.5);
+        assert_approx_eq!(comps.n2, 2.5);
+        let comps = world.prepare_computations(xs.clone(), 4, &r);
+        assert_approx_eq!(comps.n1, 2.5);
+        assert_approx_eq!(comps.n2, 1.5);
+        let comps = world.prepare_computations(xs.clone(), 5, &r);
+        assert_approx_eq!(comps.n1, 1.5);
+        assert_approx_eq!(comps.n2, 1.0);
     }
 }

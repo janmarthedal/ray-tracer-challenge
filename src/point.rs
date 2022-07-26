@@ -47,6 +47,26 @@ impl Add<&Vector> for Point {
     }
 }
 
+impl Sub<&Vector> for &Point {
+    type Output = Point;
+
+    fn sub(self, rhs: &Vector) -> Self::Output {
+        Self::Output {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+            z: self.z - rhs.z,
+        }
+    }
+}
+
+impl Sub<&Vector> for Point {
+    type Output = Point;
+
+    fn sub(self, rhs: &Vector) -> Self::Output {
+        &self - rhs
+    }
+}
+
 impl Sub<&Point> for &Point {
     type Output = Vector;
 

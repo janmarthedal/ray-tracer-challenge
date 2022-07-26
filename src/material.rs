@@ -18,8 +18,8 @@ pub struct Material<'a> {
     specular: f64,
     shininess: f64,
     reflective: f64,
-    // transparency: f64,
-    // refractive_index: f64,
+    transparency: f64,
+    refractive_index: f64,
 }
 
 pub const DEFAULT_MATERIAL: Material = Material {
@@ -29,8 +29,8 @@ pub const DEFAULT_MATERIAL: Material = Material {
     specular: 0.9,
     shininess: 200.0,
     reflective: 0.0,
-    // transparency: 0.0,
-    // refractive_index: 1.0,
+    transparency: 0.0,
+    refractive_index: 1.0,
 };
 
 impl<'a> Material<'a> {
@@ -65,11 +65,20 @@ impl<'a> Material<'a> {
     pub fn set_reflective(self, reflective: f64) -> Self {
         Self { reflective, ..self }
     }
+    pub fn set_transparency(self, transparency: f64) -> Self {
+        Self { transparency, ..self }
+    }
+    pub fn set_refractive_index(self, refractive_index: f64) -> Self {
+        Self { refractive_index, ..self }
+    }
     pub fn is_reflective(&self) -> bool {
         self.reflective > EPSILON
     }
     pub fn reflected_color(&self, color: &Color) -> Color {
         color * self.reflective
+    }
+    pub fn get_refractive_index(&self) -> f64 {
+        self.refractive_index
     }
     pub fn lighting(
         &self,

@@ -1,4 +1,4 @@
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Intersection {
     pub t: f64,
     pub object_id: usize,
@@ -10,6 +10,7 @@ impl Intersection {
     }
 }
 
+#[derive(Clone)]
 pub struct Intersections {
     intersections: Vec<Intersection>,
 }
@@ -22,12 +23,14 @@ impl Intersections {
             intersections
         }
     }
-    pub fn hit(&self) -> Option<&Intersection> {
-        self.intersections.iter().find(|i| i.t >= 0.0)
+    pub fn hit_index(&self) -> Option<usize> {
+        self.intersections.iter().position(|i| i.t >= 0.0)
     }
-    #[cfg(test)]
-    pub fn get(&self) -> Vec<f64> {
-        self.intersections.iter().map(|i| i.t).collect::<Vec<_>>()
+}
+
+impl From<Intersections> for Vec<Intersection> {
+    fn from(xs: Intersections) -> Self {
+        xs.intersections.into_iter().collect::<Self>()
     }
 }
 
@@ -59,8 +62,8 @@ mod tests {
         let i2 = Intersection::new(2.0, 1);
         let expect = i1.clone();
         let xs = Intersections::new([i1, i2]);
-        let i = xs.hit();
-        assert_eq!(i, Some(&expect));
+        let i = xs.hit_index().unwrap();
+        assert_eq!(Vec::from(xs)[i], expect);
     }
 
     #[test]
@@ -69,8 +72,8 @@ mod tests {
         let i2 = Intersection::new(1.0, 1);
         let expect = i2.clone();
         let xs = Intersections::new([i2, i1]);
-        let i = xs.hit();
-        assert_eq!(i, Some(&expect));
+        let i = xs.hit_index().unwrap();
+        assert_eq!(Vec::from(xs)[i], expect);
     }
 
     #[test]
@@ -78,7 +81,7 @@ mod tests {
         let i1 = Intersection::new(-2.0, 1);
         let i2 = Intersection::new(-1.0, 1);
         let xs = Intersections::new([i2, i1]);
-        let i = xs.hit();
+        let i = xs.hit_index();
         assert_eq!(i, None);
     }
 
@@ -90,7 +93,7 @@ mod tests {
         let i4 = Intersection::new(2.0, 1);
         let expect = i4.clone();
         let xs = Intersections::new([i1, i2, i3, i4]);
-        let i = xs.hit();
-        assert_eq!(i, Some(&expect));
+        let i = xs.hit_index().unwrap();
+        assert_eq!(Vec::from(xs)[i], expect);
     }
 }
