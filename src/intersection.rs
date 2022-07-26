@@ -15,29 +15,19 @@ pub struct Intersections {
 }
 
 impl Intersections {
-    pub fn new() -> Self {
+    pub fn new<IntoIter: IntoIterator<Item=Intersection>>(collection: IntoIter) -> Self {
+        let mut intersections = collection.into_iter().collect::<Vec<_>>();
+        intersections.sort_by(|a, b| a.t.partial_cmp(&b.t).unwrap());
         Self {
-            intersections: vec![],
+            intersections
         }
     }
-    pub fn add(&mut self, i: Intersection) {
-        self.intersections.push(i);
-    }
-    pub fn sort(&mut self) {
-        self.intersections.sort_by(|a, b| a.t.partial_cmp(&b.t).unwrap());
-    }
     pub fn hit(&self) -> Option<&Intersection> {
-        self.intersections
-            .iter()
-            .filter(|i| i.t >= 0.0)
-            .fold(None, |acc, i| match acc {
-                Some(best) if i.t > best.t => acc,
-                _ => Some(i),
-            })
+        self.intersections.iter().find(|i| i.t >= 0.0)
     }
     #[cfg(test)]
-    pub fn get(&self) -> Vec<Intersection> {
-        self.intersections.clone()
+    pub fn get(&self) -> Vec<f64> {
+        self.intersections.iter().map(|i| i.t).collect::<Vec<_>>()
     }
 }
 
@@ -57,9 +47,7 @@ mod tests {
     fn test_aggregating_intersections() {
         let i1 = Intersection::new(1.0, 1);
         let i2 = Intersection::new(2.0, 1);
-        let mut xs = Intersections::new();
-        xs.add(i1);
-        xs.add(i2);
+        let xs = Intersections::new([i1, i2]);
         assert_eq!(xs.intersections.len(), 2);
         assert_eq!(xs.intersections[0].t, 1.0);
         assert_eq!(xs.intersections[1].t, 2.0);
@@ -69,10 +57,8 @@ mod tests {
     fn test_the_hit_when_all_intersections_have_positive_t() {
         let i1 = Intersection::new(1.0, 1);
         let i2 = Intersection::new(2.0, 1);
-        let mut xs = Intersections::new();
         let expect = i1.clone();
-        xs.add(i1);
-        xs.add(i2);
+        let xs = Intersections::new([i1, i2]);
         let i = xs.hit();
         assert_eq!(i, Some(&expect));
     }
@@ -81,10 +67,8 @@ mod tests {
     fn test_the_hit_when_some_intersections_have_negative_t() {
         let i1 = Intersection::new(-1.0, 1);
         let i2 = Intersection::new(1.0, 1);
-        let mut xs = Intersections::new();
         let expect = i2.clone();
-        xs.add(i2);
-        xs.add(i1);
+        let xs = Intersections::new([i2, i1]);
         let i = xs.hit();
         assert_eq!(i, Some(&expect));
     }
@@ -93,9 +77,7 @@ mod tests {
     fn test_the_hit_when_all_intersections_have_negative_t() {
         let i1 = Intersection::new(-2.0, 1);
         let i2 = Intersection::new(-1.0, 1);
-        let mut xs = Intersections::new();
-        xs.add(i2);
-        xs.add(i1);
+        let xs = Intersections::new([i2, i1]);
         let i = xs.hit();
         assert_eq!(i, None);
     }
@@ -106,12 +88,8 @@ mod tests {
         let i2 = Intersection::new(7.0, 1);
         let i3 = Intersection::new(-3.0, 1);
         let i4 = Intersection::new(2.0, 1);
-        let mut xs = Intersections::new();
         let expect = i4.clone();
-        xs.add(i1);
-        xs.add(i2);
-        xs.add(i3);
-        xs.add(i4);
+        let xs = Intersections::new([i1, i2, i3, i4]);
         let i = xs.hit();
         assert_eq!(i, Some(&expect));
     }

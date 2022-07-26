@@ -18,6 +18,8 @@ pub struct Material<'a> {
     specular: f64,
     shininess: f64,
     reflective: f64,
+    // transparency: f64,
+    // refractive_index: f64,
 }
 
 pub const DEFAULT_MATERIAL: Material = Material {
@@ -27,6 +29,8 @@ pub const DEFAULT_MATERIAL: Material = Material {
     specular: 0.9,
     shininess: 200.0,
     reflective: 0.0,
+    // transparency: 0.0,
+    // refractive_index: 1.0,
 };
 
 impl<'a> Material<'a> {

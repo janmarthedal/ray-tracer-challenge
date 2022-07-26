@@ -43,15 +43,9 @@ impl<'a> World<'a> {
         id
     }
     fn intersect(&self, ray: &Ray) -> Intersections {
-        let mut xs = Intersections::new();
-        for (i, obj) in self.shapes.iter().enumerate() {
-            let obj_xs = obj.intersect(ray);
-            for t in obj_xs {
-                xs.add(Intersection::new(t, i));
-            }
-        }
-        xs.sort();
-        xs
+        Intersections::new(self.shapes.iter().enumerate().flat_map(|(i, obj)| {
+            obj.intersect(ray).iter().map(|t| Intersection::new(*t, i)).collect::<Vec<_>>()
+        }))
     }
     fn prepare_computations(&self, intersection: &Intersection, ray: &Ray) -> Computations {
         let point = ray.position(intersection.t);
@@ -178,10 +172,7 @@ mod tests {
         let w = default_world();
         let r = Ray::new(Point::new(0.0, 0.0, -5.0), Vector::new(0.0, 0.0, 1.0));
         let xs = w.intersect(&r);
-        assert_approx_eq!(
-            xs.get().iter().map(|i| i.t).collect::<Vec<_>>(),
-            [4.0, 4.5, 5.5, 6.0]
-        );
+        assert_approx_eq!(xs.get(), [4.0, 4.5, 5.5, 6.0]);
     }
 
     #[test]
