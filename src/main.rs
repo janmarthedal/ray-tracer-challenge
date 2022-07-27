@@ -20,7 +20,7 @@ use camera::Camera;
 use color::{Color, WHITE};
 use light::PointLight;
 use material::Material;
-use pattern::{CheckersPattern, StripedPattern};
+use pattern::CheckersPattern;
 use plane::Plane;
 use point::Point;
 use shape::Shape;

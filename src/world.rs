@@ -16,17 +16,20 @@ pub struct World<'a> {
 }
 
 struct Computations {
-    t: f64,
     object_id: usize,
-    point: Point,
     over_point: Point,
     under_point: Point,
     eyev: Vector,
     normalv: Vector,
     reflectv: Vector,
-    inside: bool,
     n1: f64,
     n2: f64,
+    #[cfg(test)]
+    t: f64,
+    #[cfg(test)]
+    point: Point,
+    #[cfg(test)]
+    inside: bool,
 }
 
 impl Computations {
@@ -117,17 +120,20 @@ impl<'a> World<'a> {
             }
         }
         Computations {
-            t: intersection.t,
             object_id: intersection.object_id,
-            point,
             over_point,
             under_point,
             eyev,
             normalv,
             reflectv,
-            inside,
             n1,
             n2,
+            #[cfg(test)]
+            t: intersection.t,
+            #[cfg(test)]
+            point,
+            #[cfg(test)]
+            inside,
         }
     }
     fn shade_hit(&self, comps: &Computations, remaining: isize) -> Color {
