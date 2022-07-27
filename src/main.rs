@@ -57,7 +57,8 @@ fn main() {
                     .set_diffuse(0.7)
                     .set_specular(0.0)
                     .set_transparency(1.0)
-                    .set_refractive_index(1.5),
+                    .set_refractive_index(1.5)
+                    .set_reflective(0.9),
             ),
     );
 
@@ -71,7 +72,8 @@ fn main() {
                     .set_diffuse(0.7)
                     .set_specular(0.0)
                     .set_transparency(1.0)
-                    .set_refractive_index(1.0),
+                    .set_refractive_index(1.0)
+                    .set_reflective(0.9),
             ),
     );
 

@@ -29,6 +29,27 @@ struct Computations {
     n2: f64,
 }
 
+impl Computations {
+    fn schlick(&self) -> f64 {
+        // find the cosine of the angle between the eye and normal vectors
+        let mut cos = self.eyev.dot(&self.normalv);
+        // total internal reflection can only occur if n1 > n2
+        if self.n1 > self.n2 {
+            let n = self.n1 / self.n2;
+            let sin2_t = n * n * (1.0 - cos * cos);
+            if sin2_t > 1.0 {
+                return 1.0;
+            }
+            // compute cosine of theta_t using trig identity
+            let cos_t = (1.0 - sin2_t).sqrt();
+            // when n1 > n2, use cos(theta_t) instead
+            cos = cos_t
+        }
+        let r0 = ((self.n1 - self.n2) / (self.n1 + self.n2)).powi(2);
+        r0 + (1.0 - r0) * (1.0 - cos).powi(5)
+    }
+}
+
 impl<'a> World<'a> {
     pub fn new() -> Self {
         Self {
@@ -126,8 +147,14 @@ impl<'a> World<'a> {
             );
             surface = surface + color;
         }
+
         let reflected = self.reflected_color(comps, remaining);
         let refracted = self.refracted_color(comps, remaining);
+
+        if material.is_reflective() && material.is_transparent() {
+            let reflectance = comps.schlick();
+            return surface + reflected * reflectance + refracted * (1.0 - reflectance);
+        }
 
         surface + reflected + refracted
     }
@@ -655,5 +682,78 @@ mod tests {
         let comps = w.prepare_computations(xs, 0, &r);
         let color = w.shade_hit(&comps, 5);
         assert_approx_eq!(color, Color::new(0.93642, 0.68642, 0.68642))
+    }
+
+    #[test]
+    fn test_the_schlick_approximation_under_total_internal_reflection() {
+        let mut w = World::new();
+        let shape = w.add_shape(new_glass_sphere(IDENTITY_AFFINE, 1.5));
+        let r = Ray::new(
+            Point::new(0.0, 0.0, 2f64.sqrt() / 2.0),
+            Vector::new(0.0, 1.0, 0.0),
+        );
+        let xs = Intersections::new([
+            Intersection::new(-2f64.sqrt() / 2.0, shape),
+            Intersection::new(2f64.sqrt() / 2.0, shape),
+        ]);
+        let comps = w.prepare_computations(xs, 1, &r);
+        let reflectance = comps.schlick();
+        assert_approx_eq!(reflectance, 1.0);
+    }
+
+    #[test]
+    fn test_the_schlick_approximation_with_a_perpendicular_viewing_angle() {
+        let mut w = World::new();
+        let shape = w.add_shape(new_glass_sphere(IDENTITY_AFFINE, 1.5));
+        let r = Ray::new(ORIGIN, Vector::new(0.0, 1.0, 0.0));
+        let xs = Intersections::new([
+            Intersection::new(-1.0, shape),
+            Intersection::new(1.0, shape),
+        ]);
+        let comps = w.prepare_computations(xs, 1, &r);
+        let reflectance = comps.schlick();
+        assert_approx_eq!(reflectance, 0.04);
+    }
+
+    #[test]
+    fn test_the_schlick_approximation_with_small_angle_and_n2_over_n1() {
+        let mut w = World::new();
+        let shape = w.add_shape(new_glass_sphere(IDENTITY_AFFINE, 1.5));
+        let r = Ray::new(Point::new(0.0, 0.99, -2.0), Vector::new(0.0, 0.0, 1.0));
+        let xs = Intersections::new([Intersection::new(1.8589, shape)]);
+        let comps = w.prepare_computations(xs, 0, &r);
+        let reflectance = comps.schlick();
+        assert_approx_eq!(reflectance, 0.48873);
+    }
+    #[test]
+    fn test_shade_hit_with_a_reflective_transparent_material() {
+        let mut w = default_world();
+        let floor = w.add_shape(
+            Shape::new(Plane::new())
+                .set_transform(translation(0.0, -1.0, 0.0))
+                .set_material(
+                    Material::new()
+                        .set_reflective(0.5)
+                        .set_transparency(0.5)
+                        .set_refractive_index(1.5),
+                ),
+        );
+        w.add_shape(
+            Shape::new(Sphere::new())
+                .set_transform(translation(0.0, -3.5, -0.5))
+                .set_material(
+                    Material::new()
+                        .set_color(Color::new(1.0, 0.0, 0.0))
+                        .set_ambient(0.5),
+                ),
+        );
+        let r = Ray::new(
+            Point::new(0.0, 0.0, -3.0),
+            Vector::new(0.0, -2f64.sqrt() / 2.0, 2f64.sqrt() / 2.0),
+        );
+        let xs = Intersections::new([Intersection::new(2f64.sqrt(), floor)]);
+        let comps = w.prepare_computations(xs, 0, &r);
+        let color = w.shade_hit(&comps, 5);
+        assert_approx_eq!(color, Color::new(0.93391, 0.69643, 0.69243))
     }
 }
