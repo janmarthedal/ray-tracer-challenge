@@ -1,5 +1,5 @@
 use crate::approx_eq::EPSILON;
-use crate::color::{Color, BLACK};
+use crate::color::{Color, BLACK, WHITE};
 use crate::intersection::{Intersection, Intersections};
 use crate::light::PointLight;
 use crate::point::Point;
@@ -127,8 +127,9 @@ impl<'a> World<'a> {
             surface = surface + color;
         }
         let reflected = self.reflected_color(comps, remaining);
+        let refracted = self.refracted_color(comps, remaining);
 
-        surface + reflected
+        surface + reflected + refracted
     }
     pub fn color_at(&self, ray: &Ray, remaining: isize) -> Color {
         let intersections = self.intersect(ray);
@@ -165,6 +166,29 @@ impl<'a> World<'a> {
 
         material.reflected_color(&color)
     }
+    fn refracted_color(&self, comps: &Computations, remaining: isize) -> Color {
+        let material = self.shapes[comps.object_id].get_material();
+        if !material.is_transparent() || remaining <= 0 {
+            return BLACK;
+        }
+        // Find the ratio of first index of refraction to the second.
+        // (Yup, this is inverted from the definition of Snell's Law.)
+        let n_ratio = comps.n1 / comps.n2;
+        let cos_i = comps.eyev.dot(&comps.normalv);
+        let sin2_t = n_ratio * n_ratio * (1.0 - cos_i * cos_i);
+        if sin2_t > 1.0 {
+            // total internal reflection
+            return BLACK;
+        }
+        let cos_t = (1.0 - sin2_t).sqrt();
+        // Compute the direction of the refracted ray
+        let direction = (n_ratio * cos_i - cos_t) * &comps.normalv - &(n_ratio * &comps.eyev);
+        // Create the refracted ray
+        let refract_ray = Ray::new(comps.under_point, direction);
+        // Find the color of the refracted ray, making sure to multiply
+        // by the transparency value to account for any opacity
+        material.scale_transparency(&self.color_at(&refract_ray, remaining - 1))
+    }
 }
 
 #[cfg(test)]
@@ -174,10 +198,11 @@ mod tests {
     use crate::approx_eq::{assert_approx_eq, ApproxEq};
     use crate::color::WHITE;
     use crate::material::Material;
+    use crate::pattern::Pattern;
     use crate::plane::Plane;
     use crate::point::ORIGIN;
     use crate::sphere::Sphere;
-    use crate::transform::{scaling, translation, Affine};
+    use crate::transform::{scaling, translation, Affine, IDENTITY_AFFINE};
 
     impl<'a> World<'a> {
         fn new_no_shadows() -> Self {
@@ -219,6 +244,20 @@ mod tests {
                     .set_refractive_index(refractive_index),
             )
             .set_transform(transform)
+    }
+
+    struct TestPattern {}
+
+    impl TestPattern {
+        pub fn new() -> Self {
+            Self {}
+        }
+    }
+
+    impl Pattern for TestPattern {
+        fn get_color(&self, point: &Point) -> Color {
+            Color::new(point.x, point.y, point.z)
+        }
     }
 
     #[test]
@@ -509,5 +548,119 @@ mod tests {
         let comps = world.prepare_computations(xs.clone(), 5, &r);
         assert_approx_eq!(comps.n1, 1.5);
         assert_approx_eq!(comps.n2, 1.0);
+    }
+
+    #[test]
+    fn test_the_refracted_color_with_an_opaque_surface() {
+        let w = default_world();
+        let r = Ray::new(Point::new(0.0, 0.0, -5.0), Vector::new(0.0, 0.0, -1.0));
+        let xs = Intersections::new([Intersection::new(4.0, 0), Intersection::new(6.0, 0)]);
+        let comps = w.prepare_computations(xs, 0, &r);
+        let c = w.refracted_color(&comps, 5);
+        assert_approx_eq!(c, BLACK);
+    }
+
+    #[test]
+    fn test_the_refracted_color_under_total_internal_reflection() {
+        let mut world = World::new();
+        world.add_light(default_light());
+        let o1 = world.add_shape(
+            Shape::new(Sphere::new()).set_material(
+                Material::new()
+                    .set_color(Color::new(0.8, 1.0, 0.6))
+                    .set_diffuse(0.7)
+                    .set_specular(0.2)
+                    .set_transparency(1.0)
+                    .set_refractive_index(1.5),
+            ),
+        );
+        world.add_shape(Shape::new(Sphere::new()).set_transform(scaling(0.5, 0.5, 0.5)));
+        let r = Ray::new(
+            Point::new(0.0, 0.0, 2f64.sqrt() / 2.0),
+            Vector::new(0.0, 1.0, 0.0),
+        );
+        let xs = Intersections::new([
+            Intersection::new(-2f64.sqrt() / 2.0, o1),
+            Intersection::new(2f64.sqrt() / 2.0, o1),
+        ]);
+        let comps = world.prepare_computations(xs, 1, &r);
+        let color = world.refracted_color(&comps, 5);
+        assert_approx_eq!(color, BLACK);
+    }
+
+    #[test]
+    fn test_the_refracted_color_with_a_refracted_ray() {
+        let mut world = World::new();
+        world.add_light(default_light());
+        let a = world.add_shape(
+            Shape::new(Sphere::new()).set_material(
+                Material::new()
+                    .set_pattern(TestPattern::new(), IDENTITY_AFFINE)
+                    .set_diffuse(0.7)
+                    .set_specular(0.2)
+                    .set_ambient(1.0),
+            ),
+        );
+        let b = world.add_shape(
+            Shape::new(Sphere::new())
+                .set_transform(scaling(0.5, 0.5, 0.5))
+                .set_material(
+                    Material::new()
+                        .set_transparency(1.0)
+                        .set_refractive_index(1.5),
+                ),
+        );
+        let r = Ray::new(Point::new(0.0, 0.0, 0.1), Vector::new(0.0, 1.0, 0.0));
+        let xs = Intersections::new([
+            Intersection::new(-0.9899, a),
+            Intersection::new(-0.4899, b),
+            Intersection::new(0.4899, b),
+            Intersection::new(0.9899, a),
+        ]);
+        let comps = world.prepare_computations(xs, 2, &r);
+        let color = world.refracted_color(&comps, 5);
+        assert_approx_eq!(color, Color::new(0.0, 0.99887, 0.04722));
+    }
+
+    #[test]
+    fn test_shade_hit_with_a_transparent_material() {
+        let mut w = World::new();
+        w.add_light(default_light());
+        w.add_shape(
+            Shape::new(Sphere::new()).set_material(
+                Material::new()
+                    .set_color(Color::new(0.8, 1.0, 0.6))
+                    .set_diffuse(0.7)
+                    .set_specular(0.2),
+            ),
+        );
+        w.add_shape(Shape::new(Sphere::new()).set_transform(scaling(0.5, 0.5, 0.5)));
+
+        let floor = w.add_shape(
+            Shape::new(Plane::new())
+                .set_transform(translation(0.0, -1.0, 0.0))
+                .set_material(
+                    Material::new()
+                        .set_transparency(0.5)
+                        .set_refractive_index(1.5),
+                ),
+        );
+        w.add_shape(
+            Shape::new(Sphere::new())
+                .set_transform(translation(0.0, -3.5, -0.5))
+                .set_material(
+                    Material::new()
+                        .set_color(Color::new(1.0, 0.0, 0.0))
+                        .set_ambient(0.5),
+                ),
+        );
+        let r = Ray::new(
+            Point::new(0.0, 0.0, -3.0),
+            Vector::new(0.0, -2f64.sqrt() / 2.0, 2f64.sqrt() / 2.0),
+        );
+        let xs = Intersections::new([Intersection::new(2f64.sqrt(), floor)]);
+        let comps = w.prepare_computations(xs, 0, &r);
+        let color = w.shade_hit(&comps, 5);
+        assert_approx_eq!(color, Color::new(0.93642, 0.68642, 0.68642))
     }
 }

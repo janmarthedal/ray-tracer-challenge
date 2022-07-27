@@ -1,4 +1,3 @@
-use crate::approx_eq::EPSILON;
 use crate::color::{Color, BLACK, WHITE};
 use crate::light::PointLight;
 use crate::pattern::Pattern;
@@ -72,10 +71,16 @@ impl<'a> Material<'a> {
         Self { refractive_index, ..self }
     }
     pub fn is_reflective(&self) -> bool {
-        self.reflective > EPSILON
+        self.reflective > 0.0
     }
     pub fn reflected_color(&self, color: &Color) -> Color {
         color * self.reflective
+    }
+    pub fn is_transparent(&self) -> bool {
+        self.transparency > 0.0
+    }
+    pub fn scale_transparency(&self, color: &Color) -> Color {
+        color * self.transparency
     }
     pub fn get_refractive_index(&self) -> f64 {
         self.refractive_index
