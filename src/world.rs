@@ -1,5 +1,5 @@
 use crate::approx_eq::EPSILON;
-use crate::color::{Color, BLACK, WHITE};
+use crate::color::{Color, BLACK};
 use crate::intersection::{Intersection, Intersections};
 use crate::light::PointLight;
 use crate::point::Point;
@@ -205,13 +205,6 @@ mod tests {
     use crate::transform::{scaling, translation, Affine, IDENTITY_AFFINE};
 
     impl<'a> World<'a> {
-        fn new_no_shadows() -> Self {
-            Self {
-                lights: vec![],
-                shapes: vec![],
-                handle_shadows: false,
-            }
-        }
         fn clear_lights(&mut self) {
             self.lights.clear();
         }
@@ -222,7 +215,7 @@ mod tests {
     }
 
     fn default_world<'a>() -> World<'a> {
-        let mut world = World::new_no_shadows();
+        let mut world = World::new();
         world.add_light(default_light());
         world.add_shape(
             Shape::new(Sphere::new()).set_material(
@@ -421,7 +414,7 @@ mod tests {
 
     #[test]
     fn test_the_reflected_color_for_a_nonreflective_material() {
-        let mut world = World::new_no_shadows();
+        let mut world = World::new();
         world.add_light(default_light());
         world.add_shape(
             Shape::new(Sphere::new()).set_material(

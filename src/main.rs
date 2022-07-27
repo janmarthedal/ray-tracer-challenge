@@ -34,22 +34,20 @@ use world::World;
 fn main() {
     let mut world = World::new();
     world.add_light(PointLight::new(Point::new(-10.0, 10.0, -10.0), WHITE));
-    // world.add_light(PointLight::new(
-    //     Point::new(20.0, 10.0, -10.0),
-    //     Color::new(0.5, 0.5, 0.5),
-    // ));
 
-    let wall_material = Material::new()
-        .set_pattern(
-            CheckersPattern::new(Color::new(1.0, 0.9, 0.9), Color::new(0.5, 0.45, 0.45)),
-            IDENTITY_AFFINE,
-        )
-        .set_specular(0.0)
-        .set_reflective(0.5);
+    // floor
+    world.add_shape(
+        Shape::new(Plane::new()).set_material(
+            Material::new()
+                .set_pattern(
+                    CheckersPattern::new(Color::new(1.0, 0.9, 0.9), Color::new(0.5, 0.45, 0.45)),
+                    IDENTITY_AFFINE,
+                )
+                .set_specular(0.0),
+        ),
+    );
 
-    world.add_shape(Shape::new(Plane::new()).set_material(wall_material));
-
-    // middle sphere
+    // sphere
     world.add_shape(
         Shape::new(Sphere::new())
             .set_transform(translation(-0.5, 1.0, 0.5))
@@ -57,21 +55,23 @@ fn main() {
                 Material::new()
                     .set_color(Color::new(0.1, 1.0, 0.5))
                     .set_diffuse(0.7)
-                    .set_specular(0.3)
+                    .set_specular(0.0)
                     .set_transparency(1.0)
                     .set_refractive_index(1.5),
             ),
     );
 
-    // left sphere
+    // sphere
     world.add_shape(
         Shape::new(Sphere::new())
-            .set_transform(translation(-1.0, 0.33, 3.0) * &scaling(0.33, 0.33, 0.33))
+            .set_transform(translation(-0.5, 1.0, 0.5) * &scaling(0.5, 0.5, 0.5))
             .set_material(
                 Material::new()
-                    .set_color(Color::new(1.0, 0.8, 0.1))
+                    .set_color(Color::new(0.1, 1.0, 0.5))
                     .set_diffuse(0.7)
-                    .set_specular(0.3),
+                    .set_specular(0.0)
+                    .set_transparency(1.0)
+                    .set_refractive_index(1.0),
             ),
     );
 
