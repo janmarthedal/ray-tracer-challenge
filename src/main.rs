@@ -2,6 +2,7 @@ mod approx_eq;
 mod camera;
 mod canvas;
 mod color;
+mod cube;
 mod intersection;
 mod light;
 mod material;
@@ -18,16 +19,16 @@ mod world;
 
 use camera::Camera;
 use color::{Color, WHITE};
+use cube::Cube;
 use light::PointLight;
 use material::Material;
 use pattern::CheckersPattern;
 use plane::Plane;
 use point::Point;
 use shape::Shape;
-use sphere::Sphere;
 use std::f64::consts::PI;
 use std::fs;
-use transform::{scaling, translation, view_transform, IDENTITY_AFFINE};
+use transform::{translation, view_transform, IDENTITY_AFFINE};
 use vector::Vector;
 use world::World;
 
@@ -47,10 +48,10 @@ fn main() {
         ),
     );
 
-    // sphere
+    // cube
     world.add_shape(
-        Shape::new(Sphere::new())
-            .set_transform(translation(-0.5, 1.0, 0.5))
+        Shape::new(Cube::new())
+            .set_transform(translation(0.0, 1.0, 0.5))
             .set_material(
                 Material::new()
                     .set_color(Color::new(0.1, 1.0, 0.5))
@@ -62,23 +63,8 @@ fn main() {
             ),
     );
 
-    // sphere
-    world.add_shape(
-        Shape::new(Sphere::new())
-            .set_transform(translation(-0.5, 1.0, 0.5) * &scaling(0.5, 0.5, 0.5))
-            .set_material(
-                Material::new()
-                    .set_color(Color::new(0.1, 1.0, 0.5))
-                    .set_diffuse(0.7)
-                    .set_specular(0.0)
-                    .set_transparency(1.0)
-                    .set_refractive_index(1.0)
-                    .set_reflective(0.9),
-            ),
-    );
-
-    let camera = Camera::new(1600, 800, PI / 3.0).set_transform(view_transform(
-        &Point::new(0.0, 1.5, -6.0),
+    let camera = Camera::new(800, 400, PI / 3.0).set_transform(view_transform(
+        &Point::new(2.0, 4.0, -6.0),
         &Point::new(0.0, 1.0, -1.0),
         &Vector::new(0.0, 1.0, 0.0),
     ));
