@@ -1,5 +1,4 @@
-use crate::approx_eq::EPSILON;
-use crate::point::{Point, ORIGIN};
+use crate::point::Point;
 use crate::ray::Ray;
 use crate::shape::LocalShape;
 use crate::vector::Vector;

@@ -3,6 +3,7 @@ mod camera;
 mod canvas;
 mod color;
 mod cube;
+mod cylinder;
 mod intersection;
 mod light;
 mod material;
